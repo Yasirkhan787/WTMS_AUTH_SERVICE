@@ -4,20 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.http.HttpStatus;
-
-import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ErrorResponse {
+public class RefreshTokenResponse {
 
-    private String message;
+    private String accessToken;
 
-    private HttpStatus status;
-
-    private LocalDateTime timeStamp;
-
+    private String refreshToken;
 }
+

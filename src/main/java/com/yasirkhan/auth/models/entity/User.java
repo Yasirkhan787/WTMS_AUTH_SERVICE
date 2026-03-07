@@ -37,6 +37,8 @@ public class User implements UserDetails {
 
     private Boolean isBlocked;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private RefreshToken refreshToken;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

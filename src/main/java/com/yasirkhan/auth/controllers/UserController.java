@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/users")
 public class UserController {
 
     private final UserService userService;
@@ -22,17 +22,14 @@ public class UserController {
     }
 
     @PostMapping("/add")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+//    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ResponseEntity<UserResponse> addUser(@RequestBody UserRequest addRequest){
 
-        UserResponse response
-                = userService.addUser(addRequest);
-
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(userService.addUser(addRequest), HttpStatus.CREATED);
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponse>> getAll(){
 
         return
@@ -40,21 +37,23 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id){
 
         return
                 ResponseEntity.ok(userService.getUserById(id));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id, @RequestBody UserRequest updateRequest){
 
         return
                 ResponseEntity.ok(userService.updateUser(id, updateRequest));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PutMapping("/block/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> blockUser(@PathVariable UUID id){
 
         return new ResponseEntity<>("User with ID:" + id + "Blocked Successfully", HttpStatus.NO_CONTENT);

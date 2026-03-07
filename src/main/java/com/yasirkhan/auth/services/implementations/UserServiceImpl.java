@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
 
         // Check if email is already exist
         if(userRepository.existsByEmail(userRequest.getEmail())){
-            throw new UserAlreadyExistException("User with Email: " + userRequest.getUsername() + " is already exist");
+            throw new UserAlreadyExistException("User with Email: " + userRequest.getEmail() + " is already exist");
         }
 
         // Converting UserRequest to User Entity
@@ -102,9 +102,21 @@ public class UserServiceImpl implements UserService {
 
         User dbUser =
                 userRepository.findById(id).orElseThrow(
-                        () -> new UserNotFoundException("User with ID: " + id + " Not Found"));
+                        () -> new UserNotFoundException(
+                                "User with ID: " + id + " Not Found"));
 
         dbUser.setIsBlocked(true);
+    }
+
+    @Override
+    public User getUserByUsername(String username) {
+
+        return
+                userRepository
+                        .findByUsername(username)
+                        .orElseThrow(
+                                () -> new UserNotFoundException
+                                        ("User with Username: " + username + " Not Found."));
     }
 
 

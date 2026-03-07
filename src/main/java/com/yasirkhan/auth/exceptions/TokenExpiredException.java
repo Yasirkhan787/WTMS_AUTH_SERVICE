@@ -1,4 +1,4 @@
-package com.yasirkhan.auth.responses;
+package com.yasirkhan.auth.exceptions;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,18 +6,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatus;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ErrorResponse {
+public class TokenExpiredException extends RuntimeException{
 
     private String message;
 
     private HttpStatus status;
 
-    private LocalDateTime timeStamp;
+    public TokenExpiredException(String message){
+        this.message = message;
+        this.status = HttpStatus.NOT_FOUND;
+    }
 
 }

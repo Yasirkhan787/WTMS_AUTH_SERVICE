@@ -4,10 +4,12 @@ package com.yasirkhan.auth.responses;
 import com.yasirkhan.auth.models.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

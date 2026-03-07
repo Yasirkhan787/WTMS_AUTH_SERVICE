@@ -1,5 +1,6 @@
 package com.yasirkhan.auth.services;
 
+import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
 import org.jspecify.annotations.Nullable;
@@ -18,4 +19,6 @@ public interface UserService {
     UserResponse updateUser(UUID id, UserRequest updateRequest);
 
     void blockUser(UUID id);
+
+    User getUserByUsername(String username);
 }
