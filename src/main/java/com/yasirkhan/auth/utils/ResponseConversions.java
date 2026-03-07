@@ -6,8 +6,8 @@ import com.yasirkhan.auth.responses.UserResponse;
 public class ResponseConversions {
 
     public static UserResponse toUserResponse(User user){
-        UserResponse userResponse =
-                UserResponse.builder()
+
+        return UserResponse.builder()
                         .id(user.getId())
                         .username(user.getUsername())
                         .email(user.getEmail())
