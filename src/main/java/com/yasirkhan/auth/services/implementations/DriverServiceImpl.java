@@ -37,7 +37,7 @@ public class DriverServiceImpl implements DriverService {
         DriverDto driverDto =
                 DriverDto
                         .builder()
-                        .userID(userResponse.getId())
+                        .id(userResponse.getId())
                         .name(driverRequest.getName())
                         .fatherName(driverRequest.getFatherName())
                         .email(userResponse.getEmail())
@@ -58,12 +58,14 @@ public class DriverServiceImpl implements DriverService {
     @Override
     public void toggleDriverStatus(UUID id, Boolean blockStatus) {
 
+        userService.blockUser(id, blockStatus);
+
         String status = blockStatus ? "BLOCKED" : "ACTIVE";
 
         DriverStatusChangedEventDto event =
                 DriverStatusChangedEventDto
                         .builder()
-                        .userID(id)
+                        .id(id)
                         .fleetStatus(status)
                         .updateType("STATUS_UPDATE")
                         .build();

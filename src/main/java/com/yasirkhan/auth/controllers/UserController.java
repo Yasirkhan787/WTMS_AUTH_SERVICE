@@ -2,6 +2,7 @@ package com.yasirkhan.auth.controllers;
 
 import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
+import com.yasirkhan.auth.services.DriverService;
 import com.yasirkhan.auth.services.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +17,11 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final DriverService driverService;
 
-    public UserController(UserService userService){
+    public UserController(UserService userService, DriverService driverService){
         this.userService = userService;
+        this.driverService = driverService;
     }
 
     @GetMapping("/all")
@@ -45,20 +48,19 @@ public class UserController {
                 ResponseEntity.ok(userService.updateUser(id, updateRequest));
     }
 
+    @PutMapping("/block/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> blockUser(@PathVariable UUID id, @RequestParam Boolean blockStatus ){
+
+        driverService.toggleDriverStatus(id, blockStatus);
+
+        return new ResponseEntity<>("User with ID:" + id + "Blocked Successfully", HttpStatus.NO_CONTENT);
+    }
+
     @PostMapping("/add")
 //    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ResponseEntity<UserResponse> addUser(@RequestBody UserRequest addRequest){
 
         return new ResponseEntity<>(userService.addUser(addRequest), HttpStatus.CREATED);
-    }
-
-
-    @PutMapping("/block/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> blockUser(@PathVariable UUID id, @RequestParam Boolean blockStatus ){
-
-        userService.blockUser(id, blockStatus);
-
-        return new ResponseEntity<>("User with ID:" + id + "Blocked Successfully", HttpStatus.NO_CONTENT);
     }
 }

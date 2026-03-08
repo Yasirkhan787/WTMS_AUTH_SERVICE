@@ -19,15 +19,12 @@ public class ResponseConversions {
                         .build();
     }
 
-    public static DriverResponse toDriverResponse(UserResponse userResponse, DriverDto driverDto){
-
-        DriverResponse response = new DriverResponse();
-        response.setId(userResponse.getId);
-        response.setUsername(userResponse.getUsername);
-        response.setIsBlocked(userResponse.getIsBlocked());
-        response.setRole(userResponse.getRole());
-
-        return response.builder()
+    public static DriverResponse toDriverResponse(UserResponse userResponse, DriverDto driverDto) {
+        return DriverResponse.builder()
+                .id(userResponse.getId())
+                .username(userResponse.getUsername())
+                .isBlocked(userResponse.getIsBlocked())
+                .role(userResponse.getRole())
                 .name(driverDto.getName())
                 .fatherName(driverDto.getFatherName())
                 .email(driverDto.getEmail())

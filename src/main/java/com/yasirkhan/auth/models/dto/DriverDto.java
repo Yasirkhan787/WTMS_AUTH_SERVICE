@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class DriverDto {
 
-    private UUID userID;
+    private UUID id;
 
     private String name;
 

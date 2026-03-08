@@ -19,14 +19,12 @@ import java.util.stream.Collectors;
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final DriverService driverService;
 
     private final UserRepository userRepository;
 
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(DriverService driverService, UserRepository userRepository, PasswordEncoder passwordEncoder){
-        this.driverService = driverService;
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder){
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -111,7 +109,7 @@ public class UserServiceImpl implements UserService {
 
         dbUser.setIsBlocked(blockStatus);
 
-        driverService.toggleDriverStatus(id, blockStatus);
+        userRepository.save(dbUser);
     }
 
     @Override

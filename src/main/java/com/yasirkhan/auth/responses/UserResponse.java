@@ -3,13 +3,14 @@ package com.yasirkhan.auth.responses;
 
 import com.yasirkhan.auth.models.entity.Role;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.UUID;
 
 @Data
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserResponse {

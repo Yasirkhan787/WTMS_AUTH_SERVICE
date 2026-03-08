@@ -1,13 +1,14 @@
 package com.yasirkhan.auth.responses;
 
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 
 @Data
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class DriverResponse extends UserResponse{

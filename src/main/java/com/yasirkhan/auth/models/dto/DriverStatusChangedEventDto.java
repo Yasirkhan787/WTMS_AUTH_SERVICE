@@ -12,7 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DriverStatusChangedEventDto {
-    private UUID userID;
+    private UUID id;
     private String fleetStatus;
     private String updateType;
 }
