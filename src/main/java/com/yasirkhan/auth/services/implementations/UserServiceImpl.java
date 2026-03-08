@@ -6,6 +6,7 @@ import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.repository.UserRepository;
 import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
+import com.yasirkhan.auth.services.DriverService;
 import com.yasirkhan.auth.services.UserService;
 import com.yasirkhan.auth.utils.ResponseConversions;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,11 +19,14 @@ import java.util.stream.Collectors;
 @Service
 public class UserServiceImpl implements UserService {
 
+    private final DriverService driverService;
+
     private final UserRepository userRepository;
 
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder){
+    public UserServiceImpl(DriverService driverService, UserRepository userRepository, PasswordEncoder passwordEncoder){
+        this.driverService = driverService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -98,14 +102,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void blockUser(UUID id) {
+    public void blockUser(UUID id, Boolean blockStatus) {
 
         User dbUser =
                 userRepository.findById(id).orElseThrow(
                         () -> new UserNotFoundException(
                                 "User with ID: " + id + " Not Found"));
 
-        dbUser.setIsBlocked(true);
+        dbUser.setIsBlocked(blockStatus);
+
+        driverService.toggleDriverStatus(id, blockStatus);
     }
 
     @Override

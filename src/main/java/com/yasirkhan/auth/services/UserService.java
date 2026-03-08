@@ -18,7 +18,7 @@ public interface UserService {
 
     UserResponse updateUser(UUID id, UserRequest updateRequest);
 
-    void blockUser(UUID id);
+    void blockUser(UUID id, Boolean blockStatus);
 
     User getUserByUsername(String username);
 }
