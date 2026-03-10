@@ -2,9 +2,11 @@ package com.yasirkhan.auth.services;
 
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Map;
+
 public interface JwtService {
 
-    String generateJwtToken(String username, String role);
+    String generateJwtToken(String username, Map<String, String> headers);
 
     String extractUsername(String token);
 

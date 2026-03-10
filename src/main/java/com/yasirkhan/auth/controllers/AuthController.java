@@ -17,6 +17,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -56,7 +59,11 @@ public class AuthController {
         User userInfo =
                 refreshTokenService.getUserFromRefreshToken(refreshToken.getToken());
 
-        String accessToken = jwtService.generateJwtToken(userInfo.getUsername(), userInfo.getRole().name());
+        Map<String, String> headers = new HashMap<>();
+        headers.put("role", userInfo.getRole().name());
+        headers.put("userId",userInfo.getId().toString());
+
+        String accessToken = jwtService.generateJwtToken(userInfo.getUsername(), headers);
 
         return
                 new ResponseEntity<>(RefreshTokenResponse

@@ -13,6 +13,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -49,9 +52,16 @@ public class AuthServiceImpl implements AuthService {
             // Get role as string
             String role = user.getRole().name();
 
+            // Get userId as String
+            String userId = user.getId().toString();
+
+            Map<String, String> headers = new HashMap<>();
+            headers.put("role", role);
+            headers.put("userId", userId);
+
             // Generate JWT Access Token
             String accessToken
-                    = jwtService.generateJwtToken(user.getUsername(), role);
+                    = jwtService.generateJwtToken(user.getUsername(), headers);
 
             // Generate Refresh Token (longer expiry)
             String refreshToken

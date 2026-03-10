@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -29,12 +30,13 @@ public class JwtServiceImpl implements JwtService {
 
     //
     @Override
-    public String generateJwtToken(String username, String role) {
+    public String generateJwtToken(String username, Map<String, String> headers) {
 
         return Jwts
                 .builder()
                 .setSubject(username)
-                .claim("role", role)
+                .claim("role", headers.get("role"))
+                .claim("userId", headers.get("userId"))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)

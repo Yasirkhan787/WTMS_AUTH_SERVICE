@@ -29,9 +29,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
         // Corrected: Use startsWith to match all paths beginning with /api/auth/
-        return path.startsWith("/api/auth/login") ||
-                path.startsWith("/api/auth/refreshToken")||
-                path.startsWith("/api/user/add")||
+        return path.startsWith("/api/v1/auth/login") ||
+                path.startsWith("/api/v1/auth/refreshToken")||
+                path.startsWith("/api/v1/user/add")||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/swagger-ui/");
     }
