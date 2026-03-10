@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/user/driver")
+@RequestMapping("/api/v1/user/driver")
 public class DriverController {
 
     private final DriverService driverService;
