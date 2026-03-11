@@ -1,5 +1,6 @@
 package com.yasirkhan.auth.services.implementations;
 
+import com.yasirkhan.auth.exceptions.BadCredentialsException;
 import com.yasirkhan.auth.exceptions.UserNotFoundException;
 import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.repository.UserRepository;
@@ -11,6 +12,7 @@ import com.yasirkhan.auth.services.RefreshTokenService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -37,17 +39,27 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(AuthRequest authRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        authRequest.getUsername(),
-                        authRequest.getPassword()
-                )
-        );
+        Authentication authentication = null;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            authRequest.getUsername(),
+                            authRequest.getPassword()
+                    )
+            );
+        } catch (AuthenticationException e) {
+            throw new BadCredentialsException(e.getMessage());
+        }
 
         if (authentication.isAuthenticated()) {
             // Get user by username
             User user = userRepository.findByUsername(authRequest.getUsername())
                     .orElseThrow(() -> new UserNotFoundException("User not found with Username: " + authRequest.getUsername()));
+
+            // Check if user is blocked
+            if (user.getIsBlocked()) {
+                throw new BadCredentialsException("User is blocked by admin");
+            }
 
             // Get role as string
             String role = user.getRole().name();
