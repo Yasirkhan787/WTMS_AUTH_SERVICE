@@ -1,5 +1,6 @@
 package com.yasirkhan.auth.services;
 
+import com.yasirkhan.auth.models.dto.UserUpdateEventDto;
 import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
@@ -16,7 +17,7 @@ public interface UserService {
 
     UserResponse getUserById(UUID id);
 
-    UserResponse updateUser(UUID id, UserRequest updateRequest);
+    UserResponse updateUser(UserUpdateEventDto updateEventDto);
 
     void blockUser(UUID id, Boolean blockStatus);
 

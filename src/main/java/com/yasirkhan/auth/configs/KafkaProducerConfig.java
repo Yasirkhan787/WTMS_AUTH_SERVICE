@@ -4,6 +4,7 @@ import com.yasirkhan.auth.utils.CustomSerializer;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -16,14 +17,15 @@ import java.util.Map;
 @Configuration
 public class KafkaProducerConfig {
 
-    @Bean
-    public NewTopic createDriverCreationTopic(){
-        return new NewTopic("user-creation-driver-topic", 2, (short) 1);
+    private final String BOOTSTRAP_SERVER;
+
+    public KafkaProducerConfig(@Value("${kafka.bootstrap.server}") String bootstrapServer) {
+        BOOTSTRAP_SERVER = bootstrapServer;
     }
 
     @Bean
-    public NewTopic createDriverStatusTopic(){
-        return new NewTopic("user-status-driver-topic", 2, (short) 1);
+    public NewTopic createUserStatusTopic(){
+        return new NewTopic("user-status-topic", 2, (short) 1);
     }
 
     @Bean
@@ -31,7 +33,7 @@ public class KafkaProducerConfig {
 
         Map<String, Object> properties
                 = new HashMap<>();
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVER);
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, CustomSerializer.class);
 

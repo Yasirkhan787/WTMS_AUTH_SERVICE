@@ -6,13 +6,14 @@ import com.yasirkhan.auth.requests.AuthRequest;
 import com.yasirkhan.auth.requests.RefreshTokenRequest;
 import com.yasirkhan.auth.responses.AuthResponse;
 import com.yasirkhan.auth.responses.RefreshTokenResponse;
+import com.yasirkhan.auth.responses.Response;
 import com.yasirkhan.auth.services.AuthService;
 import com.yasirkhan.auth.services.JwtService;
 import com.yasirkhan.auth.services.RefreshTokenService;
 import com.yasirkhan.auth.services.UserService;
-import com.yasirkhan.auth.services.implementations.UserDetailsServiceImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     private final AuthService authService;
@@ -74,11 +75,23 @@ public class AuthController {
     }
 
     @GetMapping("/ping")
-    public ResponseEntity<String> ping() {
+    public ResponseEntity<Response> ping() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
+
+        if (authentication != null && authentication.isAuthenticated() &&
+                !(authentication instanceof AnonymousAuthenticationToken)) {
+
             User user = userService.getUserByUsername(authentication.getName());
+
+            Response response = Response.builder()
+                    .userId(user.getId().toString())
+                    .username(user.getUsername())
+                    .role(user.getRole().name())
+                    .build();
+
+            return ResponseEntity.ok(response);
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 }

@@ -2,11 +2,13 @@ package com.yasirkhan.auth.services.implementations;
 
 import com.yasirkhan.auth.exceptions.UserAlreadyExistException;
 import com.yasirkhan.auth.exceptions.UserNotFoundException;
+import com.yasirkhan.auth.models.dto.UserStatusUpdateEventDto;
+import com.yasirkhan.auth.models.dto.UserUpdateEventDto;
 import com.yasirkhan.auth.models.entity.User;
+import com.yasirkhan.auth.producers.UserEventProducer;
 import com.yasirkhan.auth.repository.UserRepository;
 import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
-import com.yasirkhan.auth.services.DriverService;
 import com.yasirkhan.auth.services.UserService;
 import com.yasirkhan.auth.utils.ResponseConversions;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,13 +24,17 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
+    private final UserEventProducer userEventProducer;
+
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder){
+    public UserServiceImpl(UserRepository userRepository, UserEventProducer userEventProducer, PasswordEncoder passwordEncoder){
         this.userRepository = userRepository;
+        this.userEventProducer = userEventProducer;
         this.passwordEncoder = passwordEncoder;
     }
 
+    // Add User
     @Override
     public UserResponse addUser(UserRequest userRequest) {
 
@@ -56,6 +62,53 @@ public class UserServiceImpl implements UserService {
         return ResponseConversions.toUserResponse(savedUser);
     }
 
+    // Update User
+    @Override
+    public UserResponse updateUser(UserUpdateEventDto updateEventDto) {
+
+        User dbUser =
+                userRepository.findById(updateEventDto.getUserId()).orElseThrow(
+                        () -> new UserNotFoundException("User with ID: " + updateEventDto.getUserId() + " Not Found"));
+
+//        Map<String, Object> updates = new HashMap<>();
+//        updates.put("username", )
+        dbUser.setUsername(updateEventDto.getUsername());
+        dbUser.setEmail(updateEventDto.getEmail());
+        dbUser.setRole(updateEventDto.getRole());
+
+        // Save to the DB
+        User updatedUser =
+                userRepository.save(dbUser);
+
+        return ResponseConversions.toUserResponse(updatedUser);
+    }
+
+
+    // Block User
+    @Override
+    public void blockUser(UUID id, Boolean blockStatus) {
+
+        User dbUser =
+                userRepository.findById(id).orElseThrow(
+                        () -> new UserNotFoundException(
+                                "User with ID: " + id + " Not Found"));
+
+        dbUser.setIsBlocked(blockStatus);
+
+        User savedUser = userRepository.save(dbUser);
+
+        String status = savedUser.getIsBlocked() ? "BLOCKED" : "ACTIVE";
+
+        UserStatusUpdateEventDto event =
+                UserStatusUpdateEventDto
+                        .builder()
+                        .id(id)
+                        .userStatus(status)
+                        .build();
+
+        userEventProducer.sendUserUpdateStatusEvent(event);
+    }
+
     @Override
     public List<UserResponse> getAllUser() {
 
@@ -81,36 +134,6 @@ public class UserServiceImpl implements UserService {
         return ResponseConversions.toUserResponse(user);
     }
 
-    @Override
-    public UserResponse updateUser(UUID id, UserRequest updateRequest) {
-
-        User dbUser =
-                userRepository.findById(id).orElseThrow(
-                        () -> new UserNotFoundException("User with ID: " + id + " Not Found"));
-
-        dbUser.setUsername(updateRequest.getUsername());
-        dbUser.setEmail(updateRequest.getEmail());
-        dbUser.setRole(updateRequest.getRole());
-
-        // Save to the DB
-        User updatedUser =
-                userRepository.save(dbUser);
-
-        return ResponseConversions.toUserResponse(updatedUser);
-    }
-
-    @Override
-    public void blockUser(UUID id, Boolean blockStatus) {
-
-        User dbUser =
-                userRepository.findById(id).orElseThrow(
-                        () -> new UserNotFoundException(
-                                "User with ID: " + id + " Not Found"));
-
-        dbUser.setIsBlocked(blockStatus);
-
-        userRepository.save(dbUser);
-    }
 
     @Override
     public User getUserByUsername(String username) {
@@ -122,6 +145,8 @@ public class UserServiceImpl implements UserService {
                                 () -> new UserNotFoundException
                                         ("User with Username: " + username + " Not Found."));
     }
+
+
 
 
 }

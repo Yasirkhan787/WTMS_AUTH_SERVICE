@@ -1,17 +1,20 @@
-package com.yasirkhan.auth.requests;
+package com.yasirkhan.auth.models.dto;
 
 import com.yasirkhan.auth.models.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
 
 @Data
-@SuperBuilder
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserRequest {
+public class UserUpdateEventDto {
+
+    private UUID userId;
 
     private String username;
 
@@ -22,5 +25,4 @@ public class UserRequest {
     private Role role;
 
     private Boolean isBlocked;
-
 }

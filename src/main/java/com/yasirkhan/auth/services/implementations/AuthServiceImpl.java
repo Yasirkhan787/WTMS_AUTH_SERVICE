@@ -36,7 +36,6 @@ public class AuthServiceImpl implements AuthService {
         this.refreshTokenService = refreshTokenService;
     }
 
-
     @Override
     public AuthResponse login(AuthRequest authRequest) {
         Authentication authentication = null;
