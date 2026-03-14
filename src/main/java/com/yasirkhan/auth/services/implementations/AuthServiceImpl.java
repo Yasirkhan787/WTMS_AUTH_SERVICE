@@ -56,7 +56,7 @@ public class AuthServiceImpl implements AuthService {
                     .orElseThrow(() -> new UserNotFoundException("User not found with Username: " + authRequest.getUsername()));
 
             // Check if user is blocked
-            if (user.getIsBlocked()) {
+            if (!user.isAccountNonLocked()) {
                 throw new BadCredentialsException("User is blocked by admin");
             }
 

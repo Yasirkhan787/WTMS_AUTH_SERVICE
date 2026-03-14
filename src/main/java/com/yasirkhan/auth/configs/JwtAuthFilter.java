@@ -1,5 +1,6 @@
 package com.yasirkhan.auth.configs;
 
+import com.yasirkhan.auth.exceptions.BadCredentialsException;
 import com.yasirkhan.auth.services.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -31,9 +32,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         // Corrected: Use startsWith to match all paths beginning with /api/auth/
         return path.startsWith("/auth/login") ||
                 path.startsWith("/auth/refreshToken")||
-                path.startsWith("/auth/user/add")||
+                //path.startsWith("/auth/user/add") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/swagger-ui/");
+
     }
 
     @Override
@@ -54,6 +56,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 
             if (jwtService.isTokenValid(token, userDetails)){
+
+                if (!userDetails.isAccountNonLocked()) {
+                    throw new BadCredentialsException("User is blocked by admin");
+                }
+
                 // Set Spring SecurityContextHolder
                 UsernamePasswordAuthenticationToken authToken
                         = new UsernamePasswordAuthenticationToken(

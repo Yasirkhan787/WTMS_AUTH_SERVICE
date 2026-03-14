@@ -54,7 +54,7 @@ public class UserServiceImpl implements UserService {
         user.setEmail(userRequest.getEmail());
         user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
         user.setRole(userRequest.getRole());
-        user.setIsBlocked(false);
+        user.setIsBlocked(userRequest.getIsBlocked());
 
         // Save to the DB
         User savedUser = userRepository.save(user);

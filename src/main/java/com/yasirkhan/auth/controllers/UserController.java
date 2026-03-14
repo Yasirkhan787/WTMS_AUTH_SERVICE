@@ -21,7 +21,7 @@ public class UserController {
     }
 
     @PostMapping("/add")
-//    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ResponseEntity<UserResponse> addUser(@RequestBody UserRequest addRequest){
         return new
                 ResponseEntity<>(userService.addUser(addRequest), HttpStatus.CREATED);

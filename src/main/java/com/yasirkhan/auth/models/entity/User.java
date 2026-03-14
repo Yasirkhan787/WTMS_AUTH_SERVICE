@@ -32,6 +32,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Column(nullable = false)
     private Boolean isBlocked;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
@@ -69,7 +70,13 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return !isBlocked;
+        return true;
     }
 
+/*
+    Locked: Usually means "Too many failed login attempts" or "Admin manually suspended this user."
+
+    Disabled: Usually means "Email not verified" or "Account deactivated by user."
+
+ */
 }
