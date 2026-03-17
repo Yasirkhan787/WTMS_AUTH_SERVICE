@@ -29,6 +29,11 @@ public class KafkaProducerConfig {
     }
 
     @Bean
+    public NewTopic createUserResponseStatusTopic(){
+        return new NewTopic("user-response-topic", 2, (short) 1);
+    }
+
+    @Bean
     public Map<String, Object> producerConfig(){
 
         Map<String, Object> properties

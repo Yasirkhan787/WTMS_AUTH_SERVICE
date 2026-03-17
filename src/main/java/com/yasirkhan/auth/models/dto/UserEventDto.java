@@ -12,7 +12,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserUpdateEventDto {
+public class UserEventDto {
 
     private UUID userId;
 

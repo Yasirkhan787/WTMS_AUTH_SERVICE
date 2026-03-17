@@ -20,13 +20,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/add")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
-    public ResponseEntity<UserResponse> addUser(@RequestBody UserRequest addRequest){
-        return new
-                ResponseEntity<>(userService.addUser(addRequest), HttpStatus.CREATED);
-    }
-
     @PutMapping("/block/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> blockUser(@PathVariable UUID id, @RequestParam Boolean blockStatus ){
@@ -34,4 +27,6 @@ public class UserController {
         return new
                 ResponseEntity<>("User with ID:" + id + "Blocked Successfully", HttpStatus.NO_CONTENT);
     }
+
+    // Method to update password
 }

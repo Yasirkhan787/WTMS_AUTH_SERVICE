@@ -1,6 +1,7 @@
 package com.yasirkhan.auth.consumer;
 
-import com.yasirkhan.auth.models.dto.UserUpdateEventDto;
+import com.yasirkhan.auth.models.dto.UserEventDto;
+import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.services.UserService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,16 @@ public class UserEventConsumer {
             groupId = "auth-group",
             containerFactory = "listenerContainerFactory"
     )
-    public void consumeUserUpdationEvent(UserUpdateEventDto updateEventDto){
-        userService.updateUser(updateEventDto);
+    public void consumeUserCreationEvent(UserEventDto createUserEventDto){
+        userService.addUser(createUserEventDto);
+    }
+
+    @KafkaListener(
+            topics = "user-updation-topic",
+            groupId = "auth-group",
+            containerFactory = "listenerContainerFactory"
+    )
+    public void consumeUserUpdationEvent(UserEventDto updateUserEventDto){
+        userService.updateUser(updateUserEventDto);
     }
 }

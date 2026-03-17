@@ -2,15 +2,15 @@ package com.yasirkhan.auth.services.implementations;
 
 import com.yasirkhan.auth.exceptions.UserAlreadyExistException;
 import com.yasirkhan.auth.exceptions.UserNotFoundException;
-import com.yasirkhan.auth.models.dto.UserStatusUpdateEventDto;
-import com.yasirkhan.auth.models.dto.UserUpdateEventDto;
+import com.yasirkhan.auth.models.dto.UserEventDto;
+import com.yasirkhan.auth.models.dto.UserStatusEventDto;
 import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.producers.UserEventProducer;
 import com.yasirkhan.auth.repository.UserRepository;
-import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
 import com.yasirkhan.auth.services.UserService;
 import com.yasirkhan.auth.utils.ResponseConversions;
+import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -36,42 +36,61 @@ public class UserServiceImpl implements UserService {
 
     // Add User
     @Override
-    public UserResponse addUser(UserRequest userRequest) {
+    @Transactional
+    public UserResponse addUser(UserEventDto userCreateEventDto) {
 
         // Check if username is already exist
-        if(userRepository.existsByUsername(userRequest.getUsername())){
-            throw new UserAlreadyExistException("User with Username: " + userRequest.getUsername() + " is already exist");
+        if(userRepository.existsByUsername(userCreateEventDto.getUsername())){
+            throw new UserAlreadyExistException("User with Username: " + userCreateEventDto.getUsername() + " is already exist");
         }
 
         // Check if email is already exist
-        if(userRepository.existsByEmail(userRequest.getEmail())){
-            throw new UserAlreadyExistException("User with Email: " + userRequest.getEmail() + " is already exist");
+        if(userRepository.existsByEmail(userCreateEventDto.getEmail())){
+            throw new UserAlreadyExistException("User with Email: " + userCreateEventDto.getEmail() + " is already exist");
         }
 
         // Converting UserRequest to User Entity
         User user =  new User();
-        user.setUsername(userRequest.getUsername());
-        user.setEmail(userRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-        user.setRole(userRequest.getRole());
-        user.setIsBlocked(userRequest.getIsBlocked());
+        user.setId(userCreateEventDto.getUserId());
+        user.setUsername(userCreateEventDto.getUsername());
+        user.setEmail(userCreateEventDto.getEmail());
+        user.setPassword(passwordEncoder.encode(userCreateEventDto.getPassword()));
+        user.setRole(userCreateEventDto.getRole());
+        user.setIsBlocked(userCreateEventDto.getIsBlocked());
 
         // Save to the DB
         User savedUser = userRepository.save(user);
+
+        try {
+            UserStatusEventDto event =
+                    UserStatusEventDto
+                            .builder()
+                            .id(savedUser.getId())
+                            .userStatus("SUCCESS")
+                            .build();
+        } catch (Exception e) {
+
+            UserStatusEventDto event =
+                    UserStatusEventDto
+                            .builder()
+                            .id(savedUser.getId())
+                            .userStatus("FAILURE")
+                            .build();
+        }
+
 
         return ResponseConversions.toUserResponse(savedUser);
     }
 
     // Update User
     @Override
-    public UserResponse updateUser(UserUpdateEventDto updateEventDto) {
+    @Transactional
+    public void updateUser(UserEventDto updateEventDto) {
 
         User dbUser =
                 userRepository.findById(updateEventDto.getUserId()).orElseThrow(
                         () -> new UserNotFoundException("User with ID: " + updateEventDto.getUserId() + " Not Found"));
 
-//        Map<String, Object> updates = new HashMap<>();
-//        updates.put("username", )
         dbUser.setUsername(updateEventDto.getUsername());
         dbUser.setEmail(updateEventDto.getEmail());
         dbUser.setRole(updateEventDto.getRole());
@@ -80,12 +99,12 @@ public class UserServiceImpl implements UserService {
         User updatedUser =
                 userRepository.save(dbUser);
 
-        return ResponseConversions.toUserResponse(updatedUser);
     }
 
 
     // Block User
     @Override
+    @Transactional
     public void blockUser(UUID id, Boolean blockStatus) {
 
         User dbUser =
@@ -99,14 +118,14 @@ public class UserServiceImpl implements UserService {
 
         String status = savedUser.getIsBlocked() ? "BLOCKED" : "ACTIVE";
 
-        UserStatusUpdateEventDto event =
-                UserStatusUpdateEventDto
+        UserStatusEventDto event =
+                UserStatusEventDto
                         .builder()
                         .id(id)
                         .userStatus(status)
                         .build();
 
-        userEventProducer.sendUserUpdateStatusEvent(event);
+        userEventProducer.sendUserStatusUpdateEvent(event);
     }
 
     @Override
@@ -145,8 +164,4 @@ public class UserServiceImpl implements UserService {
                                 () -> new UserNotFoundException
                                         ("User with Username: " + username + " Not Found."));
     }
-
-
-
-
 }
