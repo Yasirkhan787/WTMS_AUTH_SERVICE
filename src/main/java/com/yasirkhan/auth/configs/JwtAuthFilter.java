@@ -29,9 +29,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        // Corrected: Use startsWith to match all paths beginning with /api/auth/
         return path.startsWith("/auth/login") ||
-                path.startsWith("/auth/refreshToken")||
+                path.startsWith("/auth/refresh")||
                 //path.startsWith("/auth/user/add") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/swagger-ui/");
@@ -48,10 +47,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
             username = jwtService.extractUsername(token);
         }
-        // Validate token
+
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null){
 
-            // calls jwtService to get User Details
             UserDetails userDetails = jwtService.loadUserByUsername(username);
 
 

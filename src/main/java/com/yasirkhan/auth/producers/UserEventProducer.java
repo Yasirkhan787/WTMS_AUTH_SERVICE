@@ -15,7 +15,7 @@ public class UserEventProducer {
 
     public void sendUserCreatedStatusEvent(UserStatusEventDto event) {
         try {
-            template.send("user-status-topic", event);
+            template.send("user-response-topic", event);
         } catch (Exception e) {
             throw new RuntimeException("Failed to send status event", e);
         }

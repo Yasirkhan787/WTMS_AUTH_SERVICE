@@ -16,7 +16,7 @@ public class UserEventConsumer {
     }
 
     @KafkaListener(
-            topics = "user-updation-topic",
+            topics = "user-created-topic",
             groupId = "auth-group",
             containerFactory = "listenerContainerFactory"
     )
@@ -25,7 +25,7 @@ public class UserEventConsumer {
     }
 
     @KafkaListener(
-            topics = "user-updation-topic",
+            topics = "user-updated-topic",
             groupId = "auth-group",
             containerFactory = "listenerContainerFactory"
     )

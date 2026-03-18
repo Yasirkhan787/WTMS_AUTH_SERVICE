@@ -65,17 +65,21 @@ public class UserServiceImpl implements UserService {
             UserStatusEventDto event =
                     UserStatusEventDto
                             .builder()
-                            .id(savedUser.getId())
-                            .userStatus("SUCCESS")
+                            .userId(savedUser.getId())
+                            .status("SUCCESS")
                             .build();
+
+            userEventProducer.sendUserCreatedStatusEvent(event);
         } catch (Exception e) {
 
             UserStatusEventDto event =
                     UserStatusEventDto
                             .builder()
-                            .id(savedUser.getId())
-                            .userStatus("FAILURE")
+                            .userId(savedUser.getId())
+                            .status("FAILURE")
                             .build();
+
+            userEventProducer.sendUserCreatedStatusEvent(event);
         }
 
 
@@ -121,8 +125,8 @@ public class UserServiceImpl implements UserService {
         UserStatusEventDto event =
                 UserStatusEventDto
                         .builder()
-                        .id(id)
-                        .userStatus(status)
+                        .userId(id)
+                        .status(status)
                         .build();
 
         userEventProducer.sendUserStatusUpdateEvent(event);

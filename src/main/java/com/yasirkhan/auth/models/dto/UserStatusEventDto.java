@@ -12,6 +12,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserStatusEventDto {
-    private UUID id;
-    private String userStatus;
+
+    private UUID userId;
+    private String status;
+
 }

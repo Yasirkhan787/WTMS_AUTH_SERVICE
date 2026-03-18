@@ -18,7 +18,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error =
                 ErrorResponse.builder()
                         .message(ex.getMessage())
-                        .status(ex.getStatus())
+                        .status(ex.getStatus().value())
+                        .error(ex.getStatus().getReasonPhrase())
                         .timeStamp(LocalDateTime.now())
                         .path(request.getRequestURI())
                         .build();
@@ -32,7 +33,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error =
                 ErrorResponse.builder()
                         .message(ex.getMessage())
-                        .status(ex.getStatus())
+                        .status(ex.getStatus().value())
+                        .error(ex.getStatus().getReasonPhrase())
                         .timeStamp(LocalDateTime.now())
                         .path(request.getRequestURI())
                         .build();
@@ -46,7 +48,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error =
                 ErrorResponse.builder()
                         .message(ex.getMessage())
-                        .status(ex.getStatus())
+                        .status(ex.getStatus().value())
+                        .error(ex.getStatus().getReasonPhrase())
                         .timeStamp(LocalDateTime.now())
                         .path(request.getRequestURI())
                         .build();
@@ -60,7 +63,8 @@ public class GlobalExceptionHandler {
         ErrorResponse error =
                 ErrorResponse.builder()
                         .message(ex.getMessage())
-                        .status(ex.getStatus())
+                        .status(ex.getStatus().value())
+                        .error(ex.getStatus().getReasonPhrase())
                         .timeStamp(LocalDateTime.now())
                         .path(request.getRequestURI())
                         .build();
@@ -74,11 +78,38 @@ public class GlobalExceptionHandler {
         ErrorResponse error =
                 ErrorResponse.builder()
                         .message(ex.getMessage())
-                        .status(ex.getStatus())
+                        .status(ex.getStatus().value())
+                        .error(ex.getStatus().getReasonPhrase())
                         .timeStamp(LocalDateTime.now())
                         .path(request.getRequestURI())
                         .build();
 
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex, HttpServletRequest request) {
+
+        // Default to 500
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+
+        // Dynamically switch status based on the exception type
+        if (ex instanceof org.springframework.web.bind.MethodArgumentNotValidException) {
+            status = HttpStatus.BAD_REQUEST; // Validation failed
+        } else if (ex instanceof org.springframework.dao.DataIntegrityViolationException) {
+            status = HttpStatus.CONFLICT;    // Database constraint (like your 'status' check)
+        } else if (ex instanceof org.springframework.web.HttpRequestMethodNotSupportedException) {
+            status = HttpStatus.METHOD_NOT_ALLOWED;
+        }
+
+        ErrorResponse response = ErrorResponse.builder()
+                .message(ex.getMessage())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .timeStamp(LocalDateTime.now())
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(response, status);
     }
 }
