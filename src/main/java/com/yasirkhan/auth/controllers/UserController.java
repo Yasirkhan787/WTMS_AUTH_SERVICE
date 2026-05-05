@@ -1,5 +1,6 @@
 package com.yasirkhan.auth.controllers;
 
+import com.yasirkhan.auth.models.dto.UserEventDto;
 import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
 import com.yasirkhan.auth.services.UserService;
@@ -36,4 +37,12 @@ public class UserController {
     }
 
     // Method to update password
+
+    // Testing
+    @PostMapping("/add")
+    public ResponseEntity<?> addUser(@RequestBody UserEventDto request){
+        request.setUserId(UUID.randomUUID());
+        return
+                ResponseEntity.ok(userService.addUser(request));
+    }
 }
