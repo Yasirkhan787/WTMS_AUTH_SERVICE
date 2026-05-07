@@ -47,31 +47,31 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest tokenRequest){
-
-        RefreshToken token = refreshTokenService.findByToken(tokenRequest.getRefreshToken());
-
-        RefreshToken refreshedToken =
-                refreshTokenService.validateRefreshToken(token);
+    public ResponseEntity<RefreshTokenResponse> refreshToken(
+            @RequestBody RefreshTokenRequest tokenRequest){
 
         RefreshToken refreshToken =
-                refreshTokenService.validateRefreshToken(refreshedToken);
+                refreshTokenService.findByToken(tokenRequest.getRefreshToken());
+
+        refreshTokenService.validateRefreshToken(refreshToken);
 
         User userInfo =
                 refreshTokenService.getUserFromRefreshToken(refreshToken.getToken());
 
         Map<String, String> headers = new HashMap<>();
         headers.put("role", userInfo.getRole().name());
-        headers.put("userId",userInfo.getId().toString());
+        headers.put("userId", userInfo.getId().toString());
 
-        String accessToken = jwtService.generateJwtToken(userInfo.getUsername(), headers);
+        String accessToken =
+                jwtService.generateJwtToken(userInfo.getUsername(), headers);
 
-        return
-                new ResponseEntity<>(RefreshTokenResponse
-                        .builder()
+        return new ResponseEntity<>(
+                RefreshTokenResponse.builder()
                         .accessToken(accessToken)
-                        .refreshToken(refreshedToken.getToken())
-                        .build(),HttpStatus.OK);
+                        .refreshToken(refreshToken.getToken())
+                        .build(),
+                HttpStatus.OK
+        );
     }
 
     @GetMapping("/ping")
