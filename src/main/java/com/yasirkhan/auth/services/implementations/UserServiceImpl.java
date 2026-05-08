@@ -4,10 +4,12 @@ import com.yasirkhan.auth.exceptions.UserAlreadyExistException;
 import com.yasirkhan.auth.exceptions.UserNotFoundException;
 import com.yasirkhan.auth.models.dto.UserEventDto;
 import com.yasirkhan.auth.models.dto.UserStatusEventDto;
+import com.yasirkhan.auth.models.entity.RefreshToken;
 import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.producers.UserEventProducer;
 import com.yasirkhan.auth.repository.UserRepository;
 import com.yasirkhan.auth.responses.UserResponse;
+import com.yasirkhan.auth.services.RefreshTokenService;
 import com.yasirkhan.auth.services.UserService;
 import com.yasirkhan.auth.utils.ResponseConversions;
 import jakarta.transaction.Transactional;
@@ -28,10 +30,13 @@ public class UserServiceImpl implements UserService {
 
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, UserEventProducer userEventProducer, PasswordEncoder passwordEncoder){
+    private final RefreshTokenService refreshTokenService;
+
+    public UserServiceImpl(UserRepository userRepository, UserEventProducer userEventProducer, PasswordEncoder passwordEncoder, RefreshTokenService refreshTokenService){
         this.userRepository = userRepository;
         this.userEventProducer = userEventProducer;
         this.passwordEncoder = passwordEncoder;
+        this.refreshTokenService = refreshTokenService;
     }
 
     // Add User
@@ -167,5 +172,18 @@ public class UserServiceImpl implements UserService {
                         .orElseThrow(
                                 () -> new UserNotFoundException
                                         ("User with Username: " + username + " Not Found."));
+    }
+
+    @Override
+    public boolean logoutUser(User user) {
+
+        Integer tokenVersion = user.getTokenVersion();
+        user.setTokenVersion(tokenVersion + 1);
+        userRepository.save(user);
+
+        RefreshToken refreshToken = user.getRefreshToken();
+        refreshTokenService.deleteRefreshToken(refreshToken.getToken());
+
+        return true;
     }
 }

@@ -75,6 +75,23 @@ public class AuthController {
         );
     }
 
+    @GetMapping("/logout")
+    public ResponseEntity<?> logout(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.isAuthenticated() &&
+                !(authentication instanceof AnonymousAuthenticationToken)) {
+
+            User user = (User) authentication.getPrincipal();
+
+            // Invalidating Access Token and Delete Refresh Token
+            if (userService.logoutUser(user)){
+                return ResponseEntity.status(HttpStatus.OK).build();
+            }
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
     @GetMapping("/ping")
     public ResponseEntity<Response> ping() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

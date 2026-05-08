@@ -21,4 +21,6 @@ public interface UserService {
     void blockUser(UUID id, Boolean blockStatus);
 
     User getUserByUsername(String username);
+
+    boolean logoutUser(User user);
 }

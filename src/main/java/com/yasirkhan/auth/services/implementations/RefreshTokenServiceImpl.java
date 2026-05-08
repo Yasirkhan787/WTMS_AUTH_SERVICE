@@ -93,4 +93,9 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .map(RefreshToken::getUser)
                 .orElseThrow(() -> new UserNotFoundException("Invalid refresh token"));
     }
+
+    @Override
+    public void deleteRefreshToken(String token) {
+        refreshTokenRepository.delete(findByToken(token));
+    }
 }
