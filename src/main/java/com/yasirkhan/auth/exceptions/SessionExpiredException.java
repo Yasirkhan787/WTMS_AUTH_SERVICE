@@ -10,13 +10,13 @@ import org.springframework.http.HttpStatus;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TokenExpiredException extends RuntimeException{
+public class SessionExpiredException extends RuntimeException{
 
     private String message;
 
     private HttpStatus status;
 
-    public TokenExpiredException(String message){
+    public SessionExpiredException(String message){
         this.message = message;
         this.status = HttpStatus.BAD_REQUEST;
     }

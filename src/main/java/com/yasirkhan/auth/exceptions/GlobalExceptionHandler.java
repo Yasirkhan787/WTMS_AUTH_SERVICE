@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(TokenNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFoundException(TokenNotFoundException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleTokenNotFoundException(TokenNotFoundException ex, HttpServletRequest request){
 
         ErrorResponse error =
                 ErrorResponse.builder()
@@ -58,7 +58,22 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(TokenExpiredException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFoundException(TokenExpiredException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleTokenExpiredException(TokenExpiredException ex, HttpServletRequest request){
+
+        ErrorResponse error =
+                ErrorResponse.builder()
+                        .message(ex.getMessage())
+                        .status(ex.getStatus().value())
+                        .error(ex.getStatus().getReasonPhrase())
+                        .timeStamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .build();
+
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(SessionExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleSessionExpiredException(SessionExpiredException ex, HttpServletRequest request){
 
         ErrorResponse error =
                 ErrorResponse.builder()

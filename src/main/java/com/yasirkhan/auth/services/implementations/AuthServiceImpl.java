@@ -60,15 +60,23 @@ public class AuthServiceImpl implements AuthService {
                 throw new BadCredentialsException("User is blocked by admin");
             }
 
+            // Token Versioning
+            user.setTokenVersion(user.getTokenVersion() + 1);
+            userRepository.save(user);
+
             // Get role as string
             String role = user.getRole().name();
 
             // Get userId as String
             String userId = user.getId().toString();
 
-            Map<String, String> headers = new HashMap<>();
+            // Get Token Version
+            Integer tokenVersion =  user.getTokenVersion();
+
+            Map<String, Object> headers = new HashMap<>();
             headers.put("role", role);
             headers.put("userId", userId);
+            headers.put("tokenVersion", tokenVersion);
 
             // Generate JWT Access Token
             String accessToken

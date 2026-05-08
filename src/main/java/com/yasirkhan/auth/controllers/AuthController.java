@@ -58,9 +58,10 @@ public class AuthController {
         User userInfo =
                 refreshTokenService.getUserFromRefreshToken(refreshToken.getToken());
 
-        Map<String, String> headers = new HashMap<>();
+        Map<String, Object> headers = new HashMap<>();
         headers.put("role", userInfo.getRole().name());
         headers.put("userId", userInfo.getId().toString());
+        headers.put("tokenVersion", userInfo.getTokenVersion());
 
         String accessToken =
                 jwtService.generateJwtToken(userInfo.getUsername(), headers);
@@ -81,7 +82,7 @@ public class AuthController {
         if (authentication != null && authentication.isAuthenticated() &&
                 !(authentication instanceof AnonymousAuthenticationToken)) {
 
-            User user = userService.getUserByUsername(authentication.getName());
+            User user = (User) authentication.getPrincipal();
 
             Response response = Response.builder()
                     .userId(user.getId().toString())

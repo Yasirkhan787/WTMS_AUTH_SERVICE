@@ -1,12 +1,17 @@
 package com.yasirkhan.auth.services.implementations;
 
+import com.yasirkhan.auth.exceptions.SessionExpiredException;
+import com.yasirkhan.auth.exceptions.TokenExpiredException;
+import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.services.JwtService;
+import com.yasirkhan.auth.services.UserService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -17,7 +22,7 @@ import java.util.function.Function;
 @Service
 public class JwtServiceImpl implements JwtService {
 
-    private final Long EXPIRATION_TIME = 1000*60*60L;  // 1 hour
+    private final Long EXPIRATION_TIME = 1000*60*15L;  // 15 minutes
 
     private final String SECRET;
 
@@ -30,13 +35,14 @@ public class JwtServiceImpl implements JwtService {
 
     //
     @Override
-    public String generateJwtToken(String username, Map<String, String> headers) {
+    public String generateJwtToken(String username, Map<String, Object> headers) {
 
         return Jwts
                 .builder()
                 .setSubject(username)
                 .claim("role", headers.get("role"))
                 .claim("userId", headers.get("userId"))
+                .claim("tokenVersion", headers.get("tokenVersion"))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
@@ -51,9 +57,28 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public Boolean isTokenValid(String token, UserDetails userDetails) {
-        String username =
-                extractUsername(token);
-        return ((username.equals(userDetails.getUsername())) && (!isTokenExpired(token)));
+
+        String username = extractUsername(token);
+
+        if(!username.equals(userDetails.getUsername())){
+            throw new UsernameNotFoundException("User Not Found with username: " + username);
+        }
+
+        if(isTokenExpired(token)){
+            throw new TokenExpiredException("Token has expired");
+        }
+
+        // Token Version
+        Integer tokenVersion = extractClaim(token,
+                (claims) -> claims.get("tokenVersion", Integer.class));
+
+        User user = (User) userDetails;
+
+        if (!tokenVersion.equals(user.getTokenVersion())){
+            throw new SessionExpiredException("Session Expired: Logged in from another device.");
+        }
+
+        return true;
     }
 
     //

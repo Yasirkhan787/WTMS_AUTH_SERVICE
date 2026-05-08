@@ -1,28 +1,34 @@
 package com.yasirkhan.auth.configs;
 
 import com.yasirkhan.auth.exceptions.BadCredentialsException;
+import com.yasirkhan.auth.exceptions.TokenNotFoundException;
 import com.yasirkhan.auth.services.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private JwtService jwtService;
+    private final JwtService jwtService;
+    private final HandlerExceptionResolver exceptionResolver;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    // 1. Inject the HandlerExceptionResolver
+    public JwtAuthFilter(JwtService jwtService,
+                         @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
         this.jwtService = jwtService;
+        this.exceptionResolver = exceptionResolver;
     }
 
     //
@@ -43,30 +49,35 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = "";
         String username = "";
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")){
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")){
+                throw new TokenNotFoundException("Missing Access Token");
+            }
+
             token = authHeader.substring(7);
             username = jwtService.extractUsername(token);
-        }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null){
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null){
 
-            UserDetails userDetails = jwtService.loadUserByUsername(username);
+                UserDetails userDetails = jwtService.loadUserByUsername(username);
 
+                if (jwtService.isTokenValid(token, userDetails)){
 
-            if (jwtService.isTokenValid(token, userDetails)){
+                    if (!userDetails.isAccountNonLocked()) {
+                        throw new BadCredentialsException("User is blocked by admin");
+                    }
 
-                if (!userDetails.isAccountNonLocked()) {
-                    throw new BadCredentialsException("User is blocked by admin");
+                    // Set Spring SecurityContextHolder
+                    UsernamePasswordAuthenticationToken authToken
+                            = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-
-                // Set Spring SecurityContextHolder
-                UsernamePasswordAuthenticationToken authToken
-                        = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+            filterChain.doFilter(request, response);
+        } catch (Exception e) {
+            exceptionResolver.resolveException(request, response, null, e);
         }
-        filterChain.doFilter(request, response);
     }
 }

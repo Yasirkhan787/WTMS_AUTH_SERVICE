@@ -34,6 +34,8 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Boolean isBlocked;
 
+    private Integer tokenVersion = 0;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private RefreshToken refreshToken;
 
