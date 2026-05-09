@@ -36,7 +36,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
         return path.startsWith("/auth/login") ||
-                path.startsWith("/auth/refresh")||
+                path.startsWith("/auth/refresh") ||
                 path.startsWith("/auth/user/add") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/swagger-ui/");
@@ -50,18 +50,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String username = "";
 
         try {
-            if (authHeader == null || !authHeader.startsWith("Bearer ")){
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 throw new TokenNotFoundException("Missing Access Token");
             }
 
             token = authHeader.substring(7);
             username = jwtService.extractUsername(token);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null){
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 UserDetails userDetails = jwtService.loadUserByUsername(username);
 
-                if (jwtService.isTokenValid(token, userDetails)){
+                if (jwtService.isTokenValid(token, userDetails)) {
 
                     if (!userDetails.isAccountNonLocked()) {
                         throw new BadCredentialsException("User is blocked by admin");
