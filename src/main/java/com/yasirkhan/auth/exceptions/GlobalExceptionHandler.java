@@ -102,6 +102,21 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, ex.getStatus());
     }
 
+    @ExceptionHandler(DatabaseException.class)
+    public ResponseEntity<ErrorResponse> handleDatabaseException(DatabaseException exception, HttpServletRequest request) {
+
+        ErrorResponse response =
+                ErrorResponse
+                        .builder()
+                        .message(exception.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                        .timeStamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .build();
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler({ExpiredJwtException.class, SignatureException.class, MalformedJwtException.class})
     public ResponseEntity<ErrorResponse> handleJwtExceptions(Exception ex, HttpServletRequest request){
 

@@ -2,18 +2,15 @@ package com.yasirkhan.auth.requests;
 
 import com.yasirkhan.auth.models.entity.Role;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-
-import java.time.LocalDate;
 
 @Data
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserRequest {
+public class SuperAdminReq {
 
     private String username;
 
@@ -23,21 +20,5 @@ public class UserRequest {
 
     private Role role;
 
-    private String name;
-
-    private String fatherName;
-
-    private String cnic;
-
-    private String phoneNo;
-
-    private String address;
-
-    private String gender;
-
-    private Integer age;
-
-    private String licenseNo;
-
-    private LocalDate licenseExpiry;
+    private Boolean isBlocked;
 }
