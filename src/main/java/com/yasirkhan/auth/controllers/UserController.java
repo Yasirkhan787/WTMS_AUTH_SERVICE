@@ -33,7 +33,7 @@ public class UserController {
     }
 
     /*
-     * Body: Must Add userId and role in Request Body
+     * Body: Must Add userId in Request Body
      */
     @PatchMapping("/update")
     @PreAuthorize("hasRole('ADMIN')")
@@ -65,9 +65,10 @@ public class UserController {
         return new
                 ResponseEntity<>("User with ID:" + id + "Blocked Successfully", HttpStatus.NO_CONTENT);
     }
-    // Method to update password
 
-    // Testing
+    // TODO: Method to update password
+
+    /** NOTE: Testing */
     @PostMapping("/add-user")
     public ResponseEntity<?> addUser(@RequestBody SuperAdminReq request){
         return

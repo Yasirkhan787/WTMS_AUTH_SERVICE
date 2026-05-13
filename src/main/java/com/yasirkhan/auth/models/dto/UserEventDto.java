@@ -1,5 +1,6 @@
 package com.yasirkhan.auth.models.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.yasirkhan.auth.models.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,7 +36,8 @@ public class UserEventDto {
 
     private String gender;
 
-    private Integer age;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+    private LocalDate dob;
 
     private String licenseNo;
 

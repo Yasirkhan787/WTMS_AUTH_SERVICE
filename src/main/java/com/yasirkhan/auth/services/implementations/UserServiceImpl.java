@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -86,7 +87,7 @@ public class UserServiceImpl implements UserService {
                         .phoneNo(request.getPhoneNo())
                         .address(request.getAddress())
                         .gender(request.getGender())
-                        .age(request.getAge())
+                        .dob(request.getDob())
                         .licenseNo(request.getLicenseNo())
                         .licenseExpiry(request.getLicenseExpiry())
                         .status("PENDING")
@@ -139,7 +140,11 @@ public class UserServiceImpl implements UserService {
                 case "gender" -> eventDto.setGender((String) value);
                 case "phoneNo" -> eventDto.setPhoneNo((String) value);
                 case "address" -> eventDto.setAddress((String) value);
-                case "age" -> eventDto.setAge((int) value);
+                case "dob" -> {
+                    DateTimeFormatter formatter =
+                            DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    eventDto.setDob(java.time.LocalDate.parse((String) value, formatter));
+                }
                 case "licenseNo" -> eventDto.setLicenseNo((String) value);
                 case "licenseExpiry" -> eventDto.setLicenseExpiry(LocalDate.parse((String) value));
                 case "status" -> eventDto.setStatus((String) value);
@@ -153,7 +158,7 @@ public class UserServiceImpl implements UserService {
 
             if (eventDto.getName() != null || eventDto.getFatherName() != null || eventDto.getCnic() != null
                     || eventDto.getPhoneNo() != null || eventDto.getAddress() != null || eventDto.getGender() != null
-                    || eventDto.getAge() != null || eventDto.getLicenseNo() != null || eventDto.getLicenseExpiry() != null) {
+                    || eventDto.getDob() != null || eventDto.getLicenseNo() != null || eventDto.getLicenseExpiry() != null) {
 
                 userEventProducer.userUpdateEvent(eventDto);
             }
@@ -227,14 +232,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public boolean logoutUser(User user) {
 
         Integer tokenVersion = user.getTokenVersion();
         user.setTokenVersion(tokenVersion + 1);
-        userRepository.save(user);
 
         RefreshToken refreshToken = user.getRefreshToken();
-        refreshTokenService.deleteRefreshToken(refreshToken.getToken());
+
+        if (refreshToken != null) {
+
+            user.setRefreshToken(null);
+
+            refreshTokenService.deleteRefreshToken(refreshToken.getToken());
+        }
+
+        userRepository.save(user);
 
         return true;
     }
