@@ -22,7 +22,7 @@ import java.util.function.Function;
 @Service
 public class JwtServiceImpl implements JwtService {
 
-    private final Long EXPIRATION_TIME = 1000*60*1L;  // 15 minutes
+    private final Long EXPIRATION_TIME = 1000*60*5L;  // 5 minutes
 
     private final String SECRET;
 
