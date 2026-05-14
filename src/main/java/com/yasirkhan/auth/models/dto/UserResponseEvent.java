@@ -16,4 +16,6 @@ public class UserResponseEvent {
     private UUID userId;
 
     private String status;
+
+    private String type;
 }
