@@ -3,8 +3,8 @@ package com.yasirkhan.auth.services.implementations;
 import com.yasirkhan.auth.exceptions.DatabaseException;
 import com.yasirkhan.auth.exceptions.UserAlreadyExistException;
 import com.yasirkhan.auth.exceptions.UserNotFoundException;
-import com.yasirkhan.auth.models.dto.UserEventDto;
-import com.yasirkhan.auth.models.dto.UserResponseEvent;
+import com.yasirkhan.auth.models.dtos.UserEventDto;
+import com.yasirkhan.auth.models.dtos.UserResponseEvent;
 import com.yasirkhan.auth.models.entity.RefreshToken;
 import com.yasirkhan.auth.models.entity.Role;
 import com.yasirkhan.auth.models.entity.User;
@@ -252,6 +252,7 @@ public class UserServiceImpl implements UserService {
         return true;
     }
 
+    /// For Testing Purpose
     @Override
     public UserResponse addUser(SuperAdminReq request) {
 

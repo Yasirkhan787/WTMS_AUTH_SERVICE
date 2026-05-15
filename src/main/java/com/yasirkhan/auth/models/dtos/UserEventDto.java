@@ -1,4 +1,4 @@
-package com.yasirkhan.auth.models.dto;
+package com.yasirkhan.auth.models.dtos;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.yasirkhan.auth.models.entity.Role;

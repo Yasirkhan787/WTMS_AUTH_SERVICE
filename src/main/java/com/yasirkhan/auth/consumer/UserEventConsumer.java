@@ -1,14 +1,11 @@
 package com.yasirkhan.auth.consumer;
 
-import com.yasirkhan.auth.models.dto.UserEventDto;
-import com.yasirkhan.auth.models.dto.UserResponseEvent;
+import com.yasirkhan.auth.models.dtos.UserResponseEvent;
 import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.repository.UserRepository;
-import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.services.UserService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.core5.reactor.IOSession;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;

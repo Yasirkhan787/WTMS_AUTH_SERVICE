@@ -11,7 +11,7 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaOperations;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
-import org.springframework.kafka.support.serializer.JacksonJsonDeserializer; // ✅ Modern Spring Deserializer
+import org.springframework.kafka.support.converter.StringJacksonJsonMessageConverter;
 import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
@@ -29,51 +29,42 @@ public class KafkaConsumerConfig {
         CONSUMER_GROUP = consumerGroup;
     }
 
-    // --- Consumer Configuration ---
     @Bean
     public Map<String, Object> consumerConfig() {
         Map<String, Object> properties = new HashMap<>();
-
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVER);
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP);
-
-        // Using .getName() avoids IDE generic type warnings
-        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class.getName());
-
-        // 🚨 Production Standard: Trust all internal microservice packages
-        properties.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "*");
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         return properties;
     }
 
     @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
+    public ConsumerFactory<String, String> consumerFactory() {
         return new DefaultKafkaConsumerFactory<>(consumerConfig());
     }
 
-    // --- Resiliency & Error Handling ---
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> listenerContainerFactory(
-            DefaultErrorHandler errorHandler) { // 👈 Inject the safety net
+    public ConcurrentKafkaListenerContainerFactory<String, String> listenerContainerFactory(
+            DefaultErrorHandler errorHandler) {
 
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
 
         factory.setConsumerFactory(consumerFactory());
-        factory.setCommonErrorHandler(errorHandler); // Attach the safety net
+        factory.setCommonErrorHandler(errorHandler);
+
+        // Tell Spring to map the JSON automatically!
+        factory.setRecordMessageConverter(new StringJacksonJsonMessageConverter());
 
         return factory;
     }
 
     @Bean
-    public DefaultErrorHandler errorHandler(KafkaOperations<Object, Object> template) {
-        /*
-         * Self-Healing Logic:
-         * 1. Retry processing 3 times, waiting 2 seconds between each attempt.
-         * 2. If it still fails, use the KafkaTemplate to push the failed message
-         * to 'original-topic.DLT' so Eco Savvy doesn't lose the data.
-         */
+    public DefaultErrorHandler errorHandler(KafkaOperations<String, Object> template) {
+
+
         return new DefaultErrorHandler(
                 new DeadLetterPublishingRecoverer(template),
                 new FixedBackOff(2000L, 3)

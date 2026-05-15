@@ -1,4 +1,4 @@
-package com.yasirkhan.auth.models.dto;
+package com.yasirkhan.auth.models.dtos;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,6 +1,6 @@
 package com.yasirkhan.auth.services;
 
-import com.yasirkhan.auth.models.dto.UserEventDto;
+import com.yasirkhan.auth.models.dtos.UserEventDto;
 import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.requests.SuperAdminReq;
 import com.yasirkhan.auth.requests.UserRequest;

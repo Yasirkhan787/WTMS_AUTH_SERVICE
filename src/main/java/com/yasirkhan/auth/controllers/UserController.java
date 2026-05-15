@@ -1,6 +1,5 @@
 package com.yasirkhan.auth.controllers;
 
-import com.yasirkhan.auth.models.dto.UserEventDto;
 import com.yasirkhan.auth.requests.SuperAdminReq;
 import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
@@ -33,7 +32,7 @@ public class UserController {
     }
 
     /*
-     * Body: Must Add userId in Request Body
+     * Body: Must Add userId and Role in Request Body
      */
     @PatchMapping("/update")
     @PreAuthorize("hasRole('ADMIN')")
