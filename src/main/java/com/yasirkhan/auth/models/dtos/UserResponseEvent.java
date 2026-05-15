@@ -1,0 +1,18 @@
+package com.yasirkhan.auth.models.dtos;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class DriverStatusChangedEventDto {
+    private UUID id;
+    private String fleetStatus;
+    private String updateType;
+}

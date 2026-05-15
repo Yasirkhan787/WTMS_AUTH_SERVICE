@@ -2,6 +2,13 @@ package com.yasirkhan.auth.services.implementations;
 
 import com.yasirkhan.auth.exceptions.UserAlreadyExistException;
 import com.yasirkhan.auth.exceptions.UserNotFoundException;
+<<<<<<< Updated upstream
+=======
+import com.yasirkhan.auth.models.dtos.UserEventDto;
+import com.yasirkhan.auth.models.dtos.UserResponseEvent;
+import com.yasirkhan.auth.models.entity.RefreshToken;
+import com.yasirkhan.auth.models.entity.Role;
+>>>>>>> Stashed changes
 import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.repository.UserRepository;
 import com.yasirkhan.auth.requests.UserRequest;

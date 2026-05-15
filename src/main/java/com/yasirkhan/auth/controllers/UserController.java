@@ -1,5 +1,9 @@
 package com.yasirkhan.auth.controllers;
 
+<<<<<<< Updated upstream
+=======
+import com.yasirkhan.auth.requests.SuperAdminReq;
+>>>>>>> Stashed changes
 import com.yasirkhan.auth.requests.UserRequest;
 import com.yasirkhan.auth.responses.UserResponse;
 import com.yasirkhan.auth.services.DriverService;
