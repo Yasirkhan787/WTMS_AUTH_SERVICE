@@ -10,6 +10,7 @@ import com.yasirkhan.auth.repository.UserRepository;
 import com.yasirkhan.auth.requests.RefreshTokenRequest;
 import com.yasirkhan.auth.services.RefreshTokenService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.Optional;
@@ -29,32 +30,35 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     //
     @Override
-    public String generateRefreshToken(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found with Username: " + username));
+    @Transactional
+    public String generateRefreshToken(User user) {
 
-        // check if a refresh token already exists for this user
-        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUser(user);
+        // Grab the token directly from the user object in memory! (NO DB QUERY)
+        RefreshToken refreshToken = user.getRefreshToken();
 
-        RefreshToken refreshToken;
-        if (existingToken.isPresent()) {
-            refreshToken = existingToken.get();
-            // check expiration
+        if (refreshToken != null) {
+            // Token exists. Check expiration.
             if (refreshToken.getExpirationDate().before(new Date())) {
-                // expired → create new one
+                // Expired → create new token string and extend time
                 refreshToken.setToken(UUID.randomUUID().toString());
                 refreshToken.setExpirationDate(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION));
             }
+            // If it's not expired, it just keeps the existing data
         } else {
-            // new refresh token
+            // No token exists for this user yet. Build a new one.
             refreshToken = RefreshToken.builder()
                     .token(UUID.randomUUID().toString())
                     .expirationDate(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION))
                     .user(user)
                     .build();
+
+            // VERY IMPORTANT: Link the new token back to the user object in memory
+            user.setRefreshToken(refreshToken);
         }
 
+        // Save the token (This executes 1 highly efficient UPDATE or INSERT)
         refreshTokenRepository.save(refreshToken);
+
         return refreshToken.getToken();
     }
 
@@ -84,14 +88,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         // token valid
         return token;
-    }
-
-    //
-    @Override
-    public User getUserFromRefreshToken(String token) {
-        return refreshTokenRepository.findByToken(token)
-                .map(RefreshToken::getUser)
-                .orElseThrow(() -> new UserNotFoundException("Invalid refresh token"));
     }
 
     @Override

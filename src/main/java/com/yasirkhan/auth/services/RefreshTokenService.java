@@ -8,11 +8,9 @@ public interface RefreshTokenService {
 
     RefreshToken findByToken(String token);
 
-    String generateRefreshToken(String email);
+    String generateRefreshToken(User user);
 
     RefreshToken validateRefreshToken(RefreshToken token);
-
-    User getUserFromRefreshToken(String token);
 
     void deleteRefreshToken(String token);
 }

@@ -45,6 +45,7 @@ public class UserController {
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return
                 ResponseEntity.ok(userService.getAllUser());
@@ -57,12 +58,14 @@ public class UserController {
                 ResponseEntity.ok(userService.getUserById(id));
     }
 
-    @PutMapping("/block/{id}")
+    @PatchMapping("/block/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> blockUser(@PathVariable UUID id, @RequestParam Boolean blockStatus) {
+    public ResponseEntity<String> blockUser(
+            @PathVariable String id,
+            @RequestParam Boolean blockStatus) {
+
         userService.blockUser(id, blockStatus);
-        return new
-                ResponseEntity<>("User with ID:" + id + "Blocked Successfully", HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>("User status updated successfully", HttpStatus.NO_CONTENT);
     }
 
     // TODO: Method to update password

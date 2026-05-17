@@ -56,7 +56,7 @@ public class AuthController {
         refreshTokenService.validateRefreshToken(refreshToken);
 
         User userInfo =
-                refreshTokenService.getUserFromRefreshToken(refreshToken.getToken());
+                refreshToken.getUser();
 
         Map<String, Object> headers = new HashMap<>();
         headers.put("role", userInfo.getRole().name());

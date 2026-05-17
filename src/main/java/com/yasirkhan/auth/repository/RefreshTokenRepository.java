@@ -11,9 +11,8 @@ import java.util.UUID;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
 
+    @Query("SELECT r FROM RefreshToken r JOIN FETCH r.user WHERE r.token = :token")
     Optional<RefreshToken> findByToken(String token);
-
-    Optional<RefreshToken> findByUser(User user);
 
     @Modifying
     @Query("DELETE FROM RefreshToken r WHERE r.token = :token")

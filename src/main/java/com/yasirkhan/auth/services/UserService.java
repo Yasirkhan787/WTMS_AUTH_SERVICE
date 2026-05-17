@@ -20,7 +20,7 @@ public interface UserService {
 
     void updateUser(Map<String, Object> updateRequest);
 
-    void blockUser(UUID id, Boolean blockStatus);
+    void blockUser(String id, Boolean blockStatus);
 
     User getUserByUsername(String username);
 

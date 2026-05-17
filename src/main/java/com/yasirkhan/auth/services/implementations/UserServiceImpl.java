@@ -170,12 +170,14 @@ public class UserServiceImpl implements UserService {
     // Block User
     @Override
     @Transactional
-    public void blockUser(UUID id, Boolean blockStatus) {
+    public void blockUser(String id, Boolean blockStatus) {
+
+        UUID userID = UUID.fromString(id);
 
         User dbUser =
-                userRepository.findById(id).orElseThrow(
+                userRepository.findById(userID).orElseThrow(
                         () -> new UserNotFoundException(
-                                "User with ID: " + id + " Not Found"));
+                                "User with ID: " + userID + " Not Found"));
 
         dbUser.setIsBlocked(blockStatus);
 
@@ -186,7 +188,7 @@ public class UserServiceImpl implements UserService {
         UserResponseEvent event =
                 UserResponseEvent
                         .builder()
-                        .userId(id)
+                        .userId(userID)
                         .status(status)
                         .build();
 

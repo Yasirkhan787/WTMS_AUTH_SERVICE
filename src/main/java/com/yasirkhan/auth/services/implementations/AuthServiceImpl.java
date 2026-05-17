@@ -51,9 +51,9 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (authentication.isAuthenticated()) {
-            // Get user by username
-            User user = userRepository.findByUsername(authRequest.getUsername())
-                    .orElseThrow(() -> new UserNotFoundException("User not found with Username: " + authRequest.getUsername()));
+
+            // Get user from Authentication
+            User user = (User) authentication.getPrincipal();
 
             // Check if user is blocked
             if (!user.isAccountNonLocked()) {
@@ -84,16 +84,13 @@ public class AuthServiceImpl implements AuthService {
 
             // Generate Refresh Token (longer expiry)
             String refreshToken
-                    = refreshTokenService.generateRefreshToken(user.getUsername());
+                    = refreshTokenService.generateRefreshToken(user);
 
-            // Build response
-            AuthResponse response =
-                    AuthResponse.builder()
-                            .accessToken(accessToken)
-                            .refreshToken(refreshToken)
-                            .build();
-
-            return response;
+            // Build and return response
+            return AuthResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .build();
         } else {
             throw new UserNotFoundException("User Not Found Authentication failed!");
         }
