@@ -19,4 +19,5 @@ public class ErrorResponse {
     private String error;
     private String path;
     private LocalDateTime timeStamp;
+    private String traceId;
 }
