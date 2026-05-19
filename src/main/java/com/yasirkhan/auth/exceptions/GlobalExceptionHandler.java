@@ -19,11 +19,8 @@ import java.time.LocalDateTime;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private final Tracer tracer;
-
-    public GlobalExceptionHandler(Tracer tracer) {
-        this.tracer = tracer;
-    }
+    @Autowired(required = false)
+    private Tracer tracer;
 
     // Helper method to safely extract the Trace ID
     private String getTraceId() {
@@ -166,6 +163,27 @@ public class GlobalExceptionHandler {
                 .build();
 
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler({UnauthorizedException.class, io.jsonwebtoken.JwtException.class})
+    public ResponseEntity<ErrorResponse> handleAuthenticationExceptions(Exception exception, HttpServletRequest request) {
+
+        // If it's a raw JwtException (like signature tampered), customize the message
+        String message = (exception instanceof io.jsonwebtoken.JwtException)
+                ? "Invalid or Expired JWT Token"
+                : exception.getMessage();
+
+        ErrorResponse response =
+                ErrorResponse
+                        .builder()
+                        .message(message)
+                        .status(HttpStatus.UNAUTHORIZED.value()) // 401
+                        .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                        .timeStamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .build();
+
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(Exception.class)

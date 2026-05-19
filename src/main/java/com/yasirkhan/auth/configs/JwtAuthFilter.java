@@ -2,12 +2,14 @@ package com.yasirkhan.auth.configs;
 
 import com.yasirkhan.auth.exceptions.BadCredentialsException;
 import com.yasirkhan.auth.exceptions.TokenNotFoundException;
+import com.yasirkhan.auth.exceptions.UnauthorizedException;
 import com.yasirkhan.auth.services.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,6 +23,8 @@ import java.io.IOException;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
+    @Value("${app.security.internal-secret}")
+    private String GATEWAY_SECRET = "";
     private final JwtService jwtService;
     private final HandlerExceptionResolver exceptionResolver;
 
@@ -50,6 +54,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String username = "";
 
         try {
+
+            String incomingSecret = request.getHeader("X-Gateway-Secret");
+
+            if (incomingSecret == null || !incomingSecret.equals(GATEWAY_SECRET)) {
+                throw new UnauthorizedException("Direct access blocked: Request must come through API Gateway");
+            }
+
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 throw new TokenNotFoundException("Missing Access Token");
             }
