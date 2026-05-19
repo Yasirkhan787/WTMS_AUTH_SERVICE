@@ -174,23 +174,29 @@ public class UserServiceImpl implements UserService {
 
         UUID userID = UUID.fromString(id);
 
-        User dbUser =
-                userRepository.findById(userID).orElseThrow(
-                        () -> new UserNotFoundException(
-                                "User with ID: " + userID + " Not Found"));
+        User dbUser = userRepository.findById(userID).orElseThrow(
+                () -> new UserNotFoundException("User with ID: " + userID + " Not Found"));
 
         dbUser.setIsBlocked(blockStatus);
+
+        if (blockStatus) {
+            dbUser.setTokenVersion(dbUser.getTokenVersion() + 1);
+        }
 
         User savedUser = userRepository.save(dbUser);
 
         String status = savedUser.getIsBlocked() ? "BLOCKED" : "ACTIVE";
 
-        UserResponseEvent event =
-                UserResponseEvent
-                        .builder()
-                        .userId(userID)
-                        .status(status)
-                        .build();
+//        if (blockStatus) {
+//            String redisKey = "user:" + userID + ":tokenVersion";
+//            redisTemplate.delete(redisKey);
+//            log.info(" User session synchronously revoked in Redis.");
+//        }
+
+        UserResponseEvent event = UserResponseEvent.builder()
+                .userId(userID)
+                .status(status)
+                .build();
 
         userEventProducer.sendUserStatusUpdateEvent(event);
     }

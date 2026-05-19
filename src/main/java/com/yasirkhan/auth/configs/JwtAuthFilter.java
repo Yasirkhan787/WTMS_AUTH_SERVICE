@@ -24,7 +24,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final HandlerExceptionResolver exceptionResolver;
 
-    // 1. Inject the HandlerExceptionResolver
+    // Inject the HandlerExceptionResolver
     public JwtAuthFilter(JwtService jwtService,
                          @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
         this.jwtService = jwtService;
