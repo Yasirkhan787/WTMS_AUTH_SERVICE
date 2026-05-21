@@ -41,6 +41,7 @@ public class UserEventDto {
 
     private String licenseNo;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
     private LocalDate licenseExpiry;
 
     private String status;

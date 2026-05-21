@@ -143,10 +143,14 @@ public class UserServiceImpl implements UserService {
                 case "dob" -> {
                     DateTimeFormatter formatter =
                             DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                    eventDto.setDob(java.time.LocalDate.parse((String) value, formatter));
+                    eventDto.setDob(LocalDate.parse((String) value, formatter));
                 }
                 case "licenseNo" -> eventDto.setLicenseNo((String) value);
-                case "licenseExpiry" -> eventDto.setLicenseExpiry(LocalDate.parse((String) value));
+                case "licenseExpiry" -> {
+                    DateTimeFormatter formatter =
+                            DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    eventDto.setLicenseExpiry(LocalDate.parse((String) value, formatter));
+                }
                 case "status" -> eventDto.setStatus((String) value);
             }
         });
@@ -196,6 +200,7 @@ public class UserServiceImpl implements UserService {
         UserResponseEvent event = UserResponseEvent.builder()
                 .userId(userID)
                 .status(status)
+                .type(status)
                 .build();
 
         userEventProducer.sendUserStatusUpdateEvent(event);

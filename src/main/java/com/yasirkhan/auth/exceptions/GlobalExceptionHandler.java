@@ -15,7 +15,7 @@ import io.jsonwebtoken.MalformedJwtException;
 
 import java.time.LocalDateTime;
 
-@Slf4j // 👈 1. Added Lombok Logging
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -217,5 +217,23 @@ public class GlobalExceptionHandler {
                 .build();
 
         return new ResponseEntity<>(response, status);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleGlobalRuntimeException(RuntimeException ex, HttpServletRequest request) {
+
+        log.error("Unexpected Runtime Exception caught at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
+
+        ErrorResponse response =
+                ErrorResponse
+                        .builder()
+                        .message("An unexpected internal server error occurred.")
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
+                        .path(request.getRequestURI())
+                        .timeStamp(LocalDateTime.now())
+                        .build();
+
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

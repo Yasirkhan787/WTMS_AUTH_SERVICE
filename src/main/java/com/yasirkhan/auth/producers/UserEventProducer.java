@@ -17,7 +17,7 @@ public class UserEventProducer {
     }
 
     public void userCreateEvent(UserEventDto event) {
-        // 🚨 Attach .whenComplete() to handle the background thread's result
+        // Attached .whenComplete() to handle the background thread's result
         template.send("user-created-topic", event).whenComplete((result, ex) -> {
             if (ex == null) {
                 log.info("SUCCESS: User created event sent for ID: {} (Partition: {}, Offset: {})",
