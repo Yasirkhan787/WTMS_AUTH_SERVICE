@@ -11,6 +11,7 @@ import com.yasirkhan.auth.services.AuthService;
 import com.yasirkhan.auth.services.JwtService;
 import com.yasirkhan.auth.services.RefreshTokenService;
 import com.yasirkhan.auth.services.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -40,15 +41,14 @@ public class AuthController {
         this.userService = userService;
     }
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest authRequest){
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest authRequest){
 
         return
                 ResponseEntity.ok(authService.login(authRequest));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<RefreshTokenResponse> refreshToken(
-            @RequestBody RefreshTokenRequest tokenRequest){
+    public ResponseEntity<RefreshTokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest tokenRequest){
 
         RefreshToken refreshToken =
                 refreshTokenService.findByToken(tokenRequest.getRefreshToken());

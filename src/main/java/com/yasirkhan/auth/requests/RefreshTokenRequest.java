@@ -1,5 +1,6 @@
 package com.yasirkhan.auth.requests;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RefreshTokenRequest {
 
+    @NotBlank(message = "Refresh token is missing from the request")
     private String refreshToken;
 
 }
