@@ -1,7 +1,8 @@
 package com.yasirkhan.auth.models.dtos;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.yasirkhan.auth.models.entity.Role;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.yasirkhan.auth.models.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserEventDto {
 
     private UUID userId;

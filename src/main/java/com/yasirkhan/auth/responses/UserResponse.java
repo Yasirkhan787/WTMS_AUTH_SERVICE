@@ -1,7 +1,7 @@
 package com.yasirkhan.auth.responses;
 
 
-import com.yasirkhan.auth.models.entity.Role;
+import com.yasirkhan.auth.models.enums.Role;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 

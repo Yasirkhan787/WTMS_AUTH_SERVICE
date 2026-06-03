@@ -1,6 +1,6 @@
 package com.yasirkhan.auth.utils.validators;
 
-import com.yasirkhan.auth.models.entity.Role;
+import com.yasirkhan.auth.models.enums.Role;
 import com.yasirkhan.auth.requests.UserRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

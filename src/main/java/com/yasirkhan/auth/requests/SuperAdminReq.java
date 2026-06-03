@@ -1,6 +1,6 @@
 package com.yasirkhan.auth.requests;
 
-import com.yasirkhan.auth.models.entity.Role;
+import com.yasirkhan.auth.models.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -51,12 +51,12 @@ public class UserEventProducer {
         template.send("user-status-topic", event).whenComplete((result, ex) -> {
             if (ex == null) {
                 log.info("SUCCESS: User Status event sent for ID: {} (Partition: {}, Offset: {})",
-                        event.getUserId(),
+                        event.getUserData().getUserId(),
                         result.getRecordMetadata().partition(),
                         result.getRecordMetadata().offset());
             } else {
                 log.error("FAILED to send User Status event for ID: {}. Reason: {}",
-                        event.getUserId(),
+                        event.getUserData().getUserId(),
                         ex.getMessage());
             }
         });

@@ -1,4 +1,4 @@
-package com.yasirkhan.auth.models.entity;
+package com.yasirkhan.auth.models.enums;
 
 public enum Role {
 

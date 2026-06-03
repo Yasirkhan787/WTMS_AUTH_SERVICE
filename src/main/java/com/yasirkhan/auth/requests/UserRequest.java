@@ -1,7 +1,7 @@
 package com.yasirkhan.auth.requests;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.yasirkhan.auth.models.entity.Role;
+import com.yasirkhan.auth.models.enums.Role;
 import com.yasirkhan.auth.utils.validators.ValidUserRequest;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

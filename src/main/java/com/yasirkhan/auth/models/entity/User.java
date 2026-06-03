@@ -1,5 +1,6 @@
 package com.yasirkhan.auth.models.entity;
 
+import com.yasirkhan.auth.models.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;

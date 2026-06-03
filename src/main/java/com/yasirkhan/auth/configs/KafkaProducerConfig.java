@@ -30,7 +30,7 @@ public class KafkaProducerConfig {
     @Bean
     public NewTopic createUserUpdatedTopic() { return new NewTopic("user-updated-topic", 2, (short) 1); }
     @Bean
-    public NewTopic userResponseDLT() { return new NewTopic("user-response-topic.DLT", 2, (short) 1); }
+    public NewTopic userResponseDLT() { return new NewTopic("user-response-topic-dlt", 2, (short) 1); }
 
     @Bean
     public Map<String, Object> producerConfig() {
