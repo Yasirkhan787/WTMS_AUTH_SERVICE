@@ -68,7 +68,7 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
-        user.setIsBlocked(true); // PENDING STATE for Saga
+        user.setIsBlocked(true);
 
         User savedUser = userRepository.save(user);
 
@@ -97,6 +97,10 @@ public class UserServiceImpl implements UserService {
                 .licenseExpiry(request.getLicenseExpiry())
                 .status("PENDING")
                 .build();
+
+        if (request.getTehsilId() != null){
+            event.setTehsilId(UUID.fromString(request.getTehsilId()));
+        }
 
         userEventProducer.userCreateEvent(event);
 
@@ -150,6 +154,7 @@ public class UserServiceImpl implements UserService {
                             DateTimeFormatter.ofPattern("dd/MM/yyyy");
                     eventDto.setDob(LocalDate.parse((String) value, formatter));
                 }
+                case "tehsilId" -> eventDto.setTehsilId((UUID) value);
                 case "licenseNo" -> eventDto.setLicenseNo((String) value);
                 case "licenseExpiry" -> {
                     DateTimeFormatter formatter =
@@ -167,7 +172,7 @@ public class UserServiceImpl implements UserService {
 
             if (eventDto.getName() != null || eventDto.getFatherName() != null || eventDto.getCnic() != null
                     || eventDto.getPhoneNo() != null || eventDto.getAddress() != null || eventDto.getGender() != null
-                    || eventDto.getDob() != null || eventDto.getLicenseNo() != null || eventDto.getLicenseExpiry() != null) {
+                    || eventDto.getDob() != null || eventDto.getTehsilId() != null || eventDto.getLicenseNo() != null || eventDto.getLicenseExpiry() != null) {
 
                 userEventProducer.userUpdateEvent(eventDto);
             }

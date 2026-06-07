@@ -65,19 +65,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(TokenNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTokenNotFoundException(TokenNotFoundException ex, HttpServletRequest request){
-
         log.warn("Token missing from request: {}", ex.getMessage());
+
+        // Safely determine the status code
+        HttpStatus status = ex.getStatus() != null ? ex.getStatus() : HttpStatus.NOT_FOUND;
 
         ErrorResponse error = ErrorResponse.builder()
                 .message(ex.getMessage())
-                .status(ex.getStatus().value())
-                .error(ex.getStatus().getReasonPhrase())
+                .status(status.value())
+                .error(status.getReasonPhrase())
                 .timeStamp(LocalDateTime.now())
                 .path(request.getRequestURI())
                 .traceId(getTraceId())
                 .build();
 
-        return new ResponseEntity<>(error, ex.getStatus());
+        return new ResponseEntity<>(error, status);
     }
 
     @ExceptionHandler(TokenExpiredException.class)

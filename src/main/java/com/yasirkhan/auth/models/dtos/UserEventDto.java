@@ -20,6 +20,8 @@ public class UserEventDto {
 
     private UUID userId;
 
+    private UUID tehsilId;
+
     private String username;
 
     private String email;

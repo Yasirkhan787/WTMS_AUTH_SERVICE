@@ -27,7 +27,7 @@ import java.util.function.Function;
 @Service
 public class JwtServiceImpl implements JwtService {
 
-    private final Long EXPIRATION_TIME = 1000 * 60 * 20L;  // 20 minutes
+    private final Long EXPIRATION_TIME = 1000 * 60 * 60L;  // 20 minutes
 
     @Value("${jwt.private-key.path}")
     private Resource privateKeyResource;
