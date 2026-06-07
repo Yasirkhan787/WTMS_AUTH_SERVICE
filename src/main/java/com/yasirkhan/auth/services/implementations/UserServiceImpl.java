@@ -72,7 +72,6 @@ public class UserServiceImpl implements UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Save to Redis (STRICTLY NON-CRITICAL INFO)
         String redisKey = "wtms:auth:user:" + savedUser.getId();
         Map<String, Object> cacheData = new HashMap<>();
         cacheData.put("username", savedUser.getUsername());
@@ -167,7 +166,6 @@ public class UserServiceImpl implements UserService {
 
         try {
 
-            // Save to the DB
             userRepository.save(dbUser);
 
             if (eventDto.getName() != null || eventDto.getFatherName() != null || eventDto.getCnic() != null
@@ -200,7 +198,6 @@ public class UserServiceImpl implements UserService {
 
         String status = savedUser.getIsBlocked() ? "BLOCKED" : "ACTIVE";
 
-        // Update Auth Redis safely
         String redisKey = "wtms:auth:user:" + userID;
         redisTemplate.opsForHash().put(redisKey, "status", status);
 

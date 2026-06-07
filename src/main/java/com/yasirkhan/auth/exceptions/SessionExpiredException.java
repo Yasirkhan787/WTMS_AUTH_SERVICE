@@ -18,7 +18,7 @@ public class SessionExpiredException extends RuntimeException{
 
     public SessionExpiredException(String message){
         this.message = message;
-        this.status = HttpStatus.BAD_REQUEST;
+        this.status = HttpStatus.FORBIDDEN;
     }
 
 }

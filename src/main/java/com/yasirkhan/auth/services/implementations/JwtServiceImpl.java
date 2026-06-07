@@ -6,10 +6,10 @@ import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.services.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -22,12 +22,13 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @Service
 public class JwtServiceImpl implements JwtService {
 
-    private final Long EXPIRATION_TIME = 1000 * 60 * 60L;  // 20 minutes
+    private final Long EXPIRATION_TIME = 1000 * 60 * 60L;  // 1 hour
 
     @Value("${jwt.private-key.path}")
     private Resource privateKeyResource;
@@ -39,14 +40,16 @@ public class JwtServiceImpl implements JwtService {
     private PublicKey publicKey;
 
     private final UserDetailsServiceImpl userDetailsService;
+    private final StringRedisTemplate redisTemplate;
 
-    public JwtServiceImpl(UserDetailsServiceImpl userDetailsService) {
+    public JwtServiceImpl(UserDetailsServiceImpl userDetailsService, StringRedisTemplate redisTemplate) {
         this.userDetailsService = userDetailsService;
+        this.redisTemplate = redisTemplate;
     }
 
     @PostConstruct
     public void init() throws Exception {
-        // 1. Load Private Key for SIGNING tokens
+        // Load Private Key for SIGNING tokens
         byte[] privKeyBytes = privateKeyResource.getInputStream().readAllBytes();
         String privKeyString = new String(privKeyBytes)
                 .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -58,7 +61,7 @@ public class JwtServiceImpl implements JwtService {
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         this.privateKey = keyFactory.generatePrivate(privKeySpec);
 
-        // 2. Load Public Key for VERIFYING tokens locally if needed
+        // Load Public Key for VERIFYING tokens locally
         byte[] pubKeyBytes = publicKeyResource.getInputStream().readAllBytes();
         String pubKeyString = new String(pubKeyBytes)
                 .replace("-----BEGIN PUBLIC KEY-----", "")
@@ -72,15 +75,27 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String generateJwtToken(String username, Map<String, Object> headers) {
-        return Jwts.builder()
+        String userId = String.valueOf(headers.get("userId"));
+        String tokenVersion = String.valueOf(headers.get("tokenVersion"));
+
+        String token = Jwts.builder()
                 .subject(username)
                 .claim("role", headers.get("role"))
-                .claim("userId", headers.get("userId"))
+                .claim("userId", userId)
                 .claim("tokenVersion", headers.get("tokenVersion"))
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(privateKey)
                 .compact();
+
+        redisTemplate.opsForValue().set(
+                "user:token:" + userId,
+                tokenVersion,
+                EXPIRATION_TIME,
+                TimeUnit.MILLISECONDS
+        );
+
+        return token;
     }
 
     @Override
