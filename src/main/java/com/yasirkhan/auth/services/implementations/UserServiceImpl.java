@@ -97,8 +97,12 @@ public class UserServiceImpl implements UserService {
                 .status("PENDING")
                 .build();
 
-        if (request.getTehsilId() != null){
+        if (request.getTehsilId() != null ){
             event.setTehsilId(UUID.fromString(request.getTehsilId()));
+        }
+
+        if (request.getYardId() != null ){
+            event.setYardId(UUID.fromString(request.getYardId()));
         }
 
         userEventProducer.userCreateEvent(event);

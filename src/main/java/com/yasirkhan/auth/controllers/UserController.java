@@ -27,7 +27,7 @@ public class UserController {
     /// Add new User
     @PostMapping("/add")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
-    public ResponseEntity<UserResponse> addUser(@Valid @RequestBody UserRequest request) {
+    public ResponseEntity<UserResponse> addUser(@RequestBody UserRequest request) {
         return ResponseEntity.ok(userService.addUser(request));
     }
 

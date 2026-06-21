@@ -22,6 +22,8 @@ public class UserEventDto {
 
     private UUID tehsilId;
 
+    private UUID yardId;
+
     private String username;
 
     private String email;

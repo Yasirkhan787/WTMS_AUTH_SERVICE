@@ -62,4 +62,6 @@ public class UserRequest {
     private LocalDate licenseExpiry;
 
     private String tehsilId;
+
+    private String yardId;
 }
