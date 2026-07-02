@@ -5,7 +5,6 @@ import com.yasirkhan.auth.exceptions.TokenNotFoundException;
 import com.yasirkhan.auth.models.entity.RefreshToken;
 import com.yasirkhan.auth.models.entity.User;
 import com.yasirkhan.auth.repository.RefreshTokenRepository;
-import com.yasirkhan.auth.repository.UserRepository;
 import com.yasirkhan.auth.services.RefreshTokenService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +16,9 @@ import java.util.UUID;
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     private final Long REFRESH_EXPIRATION = 1000 * 60 * 60 * 24 * 7L; // 7 days
-    private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    public RefreshTokenServiceImpl(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository) {
-        this.userRepository = userRepository;
+    public RefreshTokenServiceImpl(RefreshTokenRepository refreshTokenRepository) {
         this.refreshTokenRepository = refreshTokenRepository;
     }
 

@@ -46,6 +46,23 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, ex.getStatus());
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest request) {
+
+        log.warn("Resource Not Found at {}: {}", request.getRequestURI(), ex.getMessage());
+
+        ErrorResponse response =
+                ErrorResponse
+                        .builder()
+                        .message(ex.getMessage())
+                        .status(ex.getStatus().value())
+                        .error(ex.getStatus().getReasonPhrase())
+                        .path(request.getRequestURI())
+                        .timeStamp(LocalDateTime.now())
+                        .build();
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException ex, HttpServletRequest request){
 

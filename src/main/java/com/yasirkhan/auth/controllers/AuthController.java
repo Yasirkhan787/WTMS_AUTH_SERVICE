@@ -84,7 +84,7 @@ public class AuthController {
 
             User user = (User) authentication.getPrincipal();
 
-            // Invalidating Access Token and Delete Refresh Token
+            // Invalidating Access Token and Delete Refresh Token and device token
             if (userService.logoutUser(user)){
                 return ResponseEntity.status(HttpStatus.OK).build();
             }

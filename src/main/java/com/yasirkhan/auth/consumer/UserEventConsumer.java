@@ -32,26 +32,65 @@ public class UserEventConsumer {
     @Transactional
     public void handleUserResponse(UserResponseEvent event) {
         UUID userId = event.getUserData().getUserId();
+        EventType eventType = event.getType();
+        EventStatus status = event.getEventTypeStatus();
 
-        if (EventStatus.FAILURE.equals(event.getEventTypeStatus()) && EventType.CREATE.equals(event.getType())) {
-            if (userRepository.existsById(userId)) {
-                userRepository.deleteById(userId);
-                log.info("Saga Rollback Success: Deleted profile and associated actor for ID: {}", userId);
-            }
-        } else if (EventStatus.SUCCESS.equals(event.getEventTypeStatus()) && EventType.CREATE.equals(event.getType())){
+        if (EventStatus.SUCCESS.equals(status)) {
+            handleSuccessScenarios(userId, eventType);
+        } else if (EventStatus.FAILURE.equals(status)) {
+            handleFailureScenarios(userId, eventType);
+        } else {
+            log.warn("Received unknown event status for User ID: {}", userId);
+        }
+    }
 
-            // SAGA SUCCESS: Activate the pending user
-            userRepository.findById(userId).ifPresent(user -> {
-                user.setIsBlocked(false); // Unblock!
-                userRepository.save(user);
+    private void handleSuccessScenarios(UUID userId, EventType eventType) {
+        switch (eventType) {
+            case CREATE:
+                // SAGA SUCCESS: Activate the pending user
+                userRepository.findById(userId).ifPresentOrElse(user -> {
+                    user.setIsBlocked(false);
+                    userRepository.save(user);
 
-                // Update Auth Redis Cache safely
-                String redisKey = "wtms:auth:user:" + userId;
-                redisTemplate.opsForHash().put(redisKey, "status", "ACTIVE");
-                log.info("Saga Completed: User {} successfully activated.", userId);
-            });
-        } else  {
-            log.info("Saga Rollback Failure: User not found for ID: {}", userId);
+                    String redisKey = "wtms:auth:user:" + userId;
+                    redisTemplate.opsForHash().put(redisKey, "status", "ACTIVE");
+                    log.info("Saga Completed: User {} successfully activated.", userId);
+                }, () -> log.error("Saga Success Error: User not found in Auth DB for ID: {}", userId));
+                break;
+
+            case UPDATE:
+                log.info("Saga Completed: User {} successfully updated in downstream services.", userId);
+                // (Add any specific Auth DB updates here if needed, otherwise just log success)
+                break;
+
+            case BLOCK:
+            case DELETE:
+                log.info("Saga Completed: User {} status change synced successfully.", userId);
+                break;
+
+            default:
+                log.warn("Unhandled SUCCESS event type: {}", eventType);
+        }
+    }
+
+    private void handleFailureScenarios(UUID userId, EventType eventType) {
+        switch (eventType) {
+            case CREATE:
+                if (userRepository.existsById(userId)) {
+                    userRepository.deleteById(userId);
+                    log.info("Saga Rollback Success: Deleted profile and associated actor for ID: {}", userId);
+                } else {
+                    log.warn("Saga Rollback Warning: User already deleted or not found for ID: {}", userId);
+                }
+                break;
+
+            case UPDATE:
+                log.error("Saga Rollback Required: Update failed in User Service for ID: {}. Revert local Auth DB state if necessary.", userId);
+                // Implement logic to revert the Auth database to its previous state
+                break;
+
+            default:
+                log.error("Unhandled FAILURE event type: {} for User ID: {}", eventType, userId);
         }
     }
 }

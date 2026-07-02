@@ -1,8 +1,10 @@
 package com.yasirkhan.auth.services.implementations;
 
 import com.yasirkhan.auth.exceptions.DatabaseException;
+import com.yasirkhan.auth.exceptions.ResourceNotFoundException;
 import com.yasirkhan.auth.exceptions.UserAlreadyExistException;
 import com.yasirkhan.auth.exceptions.UserNotFoundException;
+import com.yasirkhan.auth.integrations.NotificationClient;
 import com.yasirkhan.auth.models.dtos.UserEventDto;
 import com.yasirkhan.auth.models.dtos.UserResponseEvent;
 import com.yasirkhan.auth.models.entity.RefreshToken;
@@ -19,7 +21,6 @@ import com.yasirkhan.auth.services.RefreshTokenService;
 import com.yasirkhan.auth.services.UserService;
 import com.yasirkhan.auth.utils.ResponseConversions;
 import jakarta.transaction.Transactional;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,16 +40,18 @@ public class UserServiceImpl implements UserService {
     private final UserEventProducer userEventProducer;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
-    private final RedisTemplate<String, Object> redisTemplate; // Injected Redis
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final NotificationClient notificationClient;
 
     public UserServiceImpl(UserRepository userRepository, UserEventProducer userEventProducer,
                            PasswordEncoder passwordEncoder, RefreshTokenService refreshTokenService,
-                           RedisTemplate<String, Object> redisTemplate) {
+                           RedisTemplate<String, Object> redisTemplate, NotificationClient notificationClient) {
         this.userRepository = userRepository;
         this.userEventProducer = userEventProducer;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenService = refreshTokenService;
         this.redisTemplate = redisTemplate;
+        this.notificationClient = notificationClient;
     }
 
     @Override
@@ -275,6 +278,8 @@ public class UserServiceImpl implements UserService {
         }
 
         userRepository.save(user);
+
+        notificationClient.deleteFCMToken(user.getId().toString());
 
         return true;
     }
