@@ -29,5 +29,7 @@ public interface UserService {
 
     String generateForgetPasswordToken(ForgetPasswordRequest request);
 
+    String verifyOtp(String otp);
+
     void resetPassword(ResetPasswordRequest request);
 }

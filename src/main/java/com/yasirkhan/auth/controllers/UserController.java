@@ -1,8 +1,7 @@
 package com.yasirkhan.auth.controllers;
 
 import com.yasirkhan.auth.models.entity.User;
-import com.yasirkhan.auth.requests.SuperAdminReq;
-import com.yasirkhan.auth.requests.UserRequest;
+import com.yasirkhan.auth.requests.*;
 import com.yasirkhan.auth.responses.UserResponse;
 import com.yasirkhan.auth.services.UserService;
 import jakarta.validation.Valid;
@@ -13,9 +12,6 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import com.yasirkhan.auth.requests.ChangePasswordRequest;
-import com.yasirkhan.auth.requests.ForgetPasswordRequest;
-import com.yasirkhan.auth.requests.ResetPasswordRequest;
 
 import java.util.HashMap;
 import java.util.List;
@@ -83,7 +79,7 @@ public class UserController {
                 ResponseEntity.ok(userService.addUser(request));
     }
 
-    // 1. CHANGE PASSWORD (Authenticated Link)
+    // CHANGE PASSWORD (Authenticated Link)
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -99,17 +95,28 @@ public class UserController {
         return ResponseEntity.ok("Password updated successfully. Please log in again on other devices.");
     }
 
-    // FORGET PASSWORD REQUEST (Public Endpoint - Generates Recovery Token)
+    // REQUEST OTP
     @PostMapping("/forget-password")
     public ResponseEntity<Map<String, String>> forgetPassword(@Valid @RequestBody ForgetPasswordRequest request) {
-        String token = userService.generateForgetPasswordToken(request);
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Recovery token generated successfully. Expires in 15 minutes.");
+        userService.generateForgetPasswordToken(request);
 
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "A 6-digit recovery code has been sent to your email. Expires in 10 minutes.");
         return ResponseEntity.ok(response);
     }
 
-    // SUBMIT RECOVERY AND RESET (Public Endpoint - Consumes Token)
+    // VERIFY OTP & GET SECURE TOKEN
+    @PostMapping("/verify-otp")
+    public ResponseEntity<Map<String, String>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        String secureToken = userService.verifyOtp(request.getOtp());
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "OTP Verified Successfully.");
+        response.put("secureResetToken", secureToken);
+        return ResponseEntity.ok(response);
+    }
+
+    // SUBMIT NEW PASSWORD
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(request);

@@ -317,47 +317,76 @@ public class UserServiceImpl implements UserService {
             throw new UnauthorizedException("This account has been locked out by an administrator.");
         }
 
+        // Generate 6-Digit OTP
         int randomNum = (int) (Math.random() * 900000) + 100000;
-        String resetToken = String.valueOf(randomNum);
+        String otp = String.valueOf(randomNum);
 
-        String redisKey = "wtms:auth:reset-token:" + resetToken;
+        // Store OTP in Redis for exactly 10 minutes
+        String redisOtpKey = "wtms:auth:otp:" + otp;
+        redisTemplate.opsForValue().set(redisOtpKey, user.getEmail(), 10, TimeUnit.MINUTES);
 
-        // Store OTP in Redis for exactly 15 minutes
-        redisTemplate.opsForValue().set(redisKey, user.getEmail(), 15, TimeUnit.MINUTES);
-
-        emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+        // Dispatch the live email containing the OTP
+        emailService.sendPasswordResetEmail(user.getEmail(), otp);
 
         log.info("Forget password 6-digit OTP generated and emailed to user: {}", user.getUsername());
 
-        return resetToken;
+        // Return a generic success message to the controller, NOT the OTP itself!
+        return "OTP sent successfully.";
+    }
+
+    @Override
+    public String verifyOtp(String otp) {
+        String redisOtpKey = "wtms:auth:otp:" + otp;
+
+        // Validate OTP from Redis
+        Object cachedEmailObj = redisTemplate.opsForValue().get(redisOtpKey);
+        if (cachedEmailObj == null) {
+            throw new IllegalArgumentException("This 6-digit OTP has expired or is invalid.");
+        }
+
+        String email = cachedEmailObj.toString();
+
+        // Burn the OTP instantly so it cannot be guessed/reused
+        redisTemplate.delete(redisOtpKey);
+
+        // Generate the Temporary Secure Reset Token (UUID) for Step 3
+        String secureResetToken = UUID.randomUUID().toString();
+        String redisResetKey = "wtms:auth:reset-token:" + secureResetToken;
+
+        // Cache this secure token for 15 minutes to allow them to type their new password
+        redisTemplate.opsForValue().set(redisResetKey, email, 15, TimeUnit.MINUTES);
+
+        log.info("OTP verified for {}. Secure reset session initiated.", email);
+
+        return secureResetToken;
     }
 
     @Override
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
-        String redisKey = "wtms:auth:reset-token:" + request.getToken();
+        // The frontend now passes the UUID from verifyOtp() into request.getToken()
+        String redisResetKey = "wtms:auth:reset-token:" + request.getToken();
 
-        // 1. Validate Token from Redis cache
-        Object cachedEmailObj = redisTemplate.opsForValue().get(redisKey);
+        // Validate Secure Token
+        Object cachedEmailObj = redisTemplate.opsForValue().get(redisResetKey);
         if (cachedEmailObj == null) {
-            throw new IllegalArgumentException("The reset link has expired or is invalid.");
+            throw new IllegalArgumentException("This secure reset session has expired. Please request a new OTP.");
         }
 
         String email = cachedEmailObj.toString();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Account processing error during recovery sync."));
 
-        // 2. Set new password and invalidate prior sessions
+        // Set new password and invalidate prior sessions
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
 
-        // 3. Burn the reset token instantly so it cannot be used again
-        redisTemplate.delete(redisKey);
+        // Burn the secure reset token
+        redisTemplate.delete(redisResetKey);
 
         log.info("Password successfully recovered and reset for user: {}", user.getUsername());
     }
-
 
     /// For Testing Purpose
     @Override
