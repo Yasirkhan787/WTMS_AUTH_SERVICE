@@ -22,4 +22,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.refreshToken WHERE u.username = :username")
     Optional<User> findByUsername(String username);
+
+    Optional<User> findByEmail(String email);
 }

@@ -1,14 +1,11 @@
 package com.yasirkhan.auth.services;
 
-import com.yasirkhan.auth.models.dtos.UserEventDto;
 import com.yasirkhan.auth.models.entity.User;
-import com.yasirkhan.auth.requests.SuperAdminReq;
-import com.yasirkhan.auth.requests.UserRequest;
+import com.yasirkhan.auth.requests.*;
 import com.yasirkhan.auth.responses.UserResponse;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public interface UserService {
 
@@ -27,4 +24,10 @@ public interface UserService {
     boolean logoutUser(User user);
 
     UserResponse addUser(SuperAdminReq request);
+
+    void changePassword(User user, ChangePasswordRequest request);
+
+    String generateForgetPasswordToken(ForgetPasswordRequest request);
+
+    void resetPassword(ResetPasswordRequest request);
 }

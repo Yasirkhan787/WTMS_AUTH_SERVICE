@@ -1,9 +1,6 @@
 package com.yasirkhan.auth.services.implementations;
 
-import com.yasirkhan.auth.exceptions.DatabaseException;
-import com.yasirkhan.auth.exceptions.ResourceNotFoundException;
-import com.yasirkhan.auth.exceptions.UserAlreadyExistException;
-import com.yasirkhan.auth.exceptions.UserNotFoundException;
+import com.yasirkhan.auth.exceptions.*;
 import com.yasirkhan.auth.integrations.NotificationClient;
 import com.yasirkhan.auth.models.dtos.UserEventDto;
 import com.yasirkhan.auth.models.dtos.UserResponseEvent;
@@ -21,9 +18,14 @@ import com.yasirkhan.auth.services.RefreshTokenService;
 import com.yasirkhan.auth.services.UserService;
 import com.yasirkhan.auth.utils.ResponseConversions;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.yasirkhan.auth.requests.ChangePasswordRequest;
+import com.yasirkhan.auth.requests.ForgetPasswordRequest;
+import com.yasirkhan.auth.requests.ResetPasswordRequest;
+import java.util.concurrent.TimeUnit;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -34,6 +36,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -42,16 +45,18 @@ public class UserServiceImpl implements UserService {
     private final RefreshTokenService refreshTokenService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final NotificationClient notificationClient;
+    private final EmailService emailService;
 
     public UserServiceImpl(UserRepository userRepository, UserEventProducer userEventProducer,
                            PasswordEncoder passwordEncoder, RefreshTokenService refreshTokenService,
-                           RedisTemplate<String, Object> redisTemplate, NotificationClient notificationClient) {
+                           RedisTemplate<String, Object> redisTemplate, NotificationClient notificationClient, EmailService emailService) {
         this.userRepository = userRepository;
         this.userEventProducer = userEventProducer;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenService = refreshTokenService;
         this.redisTemplate = redisTemplate;
         this.notificationClient = notificationClient;
+        this.emailService = emailService;
     }
 
     @Override
@@ -161,6 +166,7 @@ public class UserServiceImpl implements UserService {
                     eventDto.setDob(LocalDate.parse((String) value, formatter));
                 }
                 case "tehsilId" -> eventDto.setTehsilId((UUID) value);
+                case "yardId" -> eventDto.setYardId((UUID) value);
                 case "licenseNo" -> eventDto.setLicenseNo((String) value);
                 case "licenseExpiry" -> {
                     DateTimeFormatter formatter =
@@ -175,9 +181,9 @@ public class UserServiceImpl implements UserService {
 
             userRepository.save(dbUser);
 
-            if (eventDto.getName() != null || eventDto.getFatherName() != null || eventDto.getCnic() != null
+            if (eventDto.getEmail() != null || eventDto.getName() != null || eventDto.getFatherName() != null || eventDto.getCnic() != null
                     || eventDto.getPhoneNo() != null || eventDto.getAddress() != null || eventDto.getGender() != null
-                    || eventDto.getDob() != null || eventDto.getTehsilId() != null || eventDto.getLicenseNo() != null || eventDto.getLicenseExpiry() != null) {
+                    || eventDto.getDob() != null || eventDto.getTehsilId() != null || eventDto.getYardId() != null || eventDto.getLicenseNo() != null || eventDto.getLicenseExpiry() != null) {
 
                 userEventProducer.userUpdateEvent(eventDto);
             }
@@ -283,6 +289,75 @@ public class UserServiceImpl implements UserService {
 
         return true;
     }
+
+    @Override
+    @Transactional
+    public void changePassword(User user, ChangePasswordRequest request) {
+        // 1. Verify old password matches current encoded password
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new BadCredentialsException("The current password you provided is incorrect.");
+        }
+
+        // 2. Validate password strength/rules if required, then encode new password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+        // 3. CRITICAL SECURITY FEATURE: Increment Token Version to instantly invalidate all old active JWT sessions!
+        user.setTokenVersion(user.getTokenVersion() + 1);
+
+        userRepository.save(user);
+        log.info("Password changed successfully for user: {}. Active tokens revoked.", user.getUsername());
+    }
+
+    @Override
+    public String generateForgetPasswordToken(ForgetPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("No account linked with this email address."));
+
+        if (Boolean.TRUE.equals(user.getIsBlocked())) {
+            throw new UnauthorizedException("This account has been locked out by an administrator.");
+        }
+
+        int randomNum = (int) (Math.random() * 900000) + 100000;
+        String resetToken = String.valueOf(randomNum);
+
+        String redisKey = "wtms:auth:reset-token:" + resetToken;
+
+        // Store OTP in Redis for exactly 15 minutes
+        redisTemplate.opsForValue().set(redisKey, user.getEmail(), 15, TimeUnit.MINUTES);
+
+        emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+
+        log.info("Forget password 6-digit OTP generated and emailed to user: {}", user.getUsername());
+
+        return resetToken;
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        String redisKey = "wtms:auth:reset-token:" + request.getToken();
+
+        // 1. Validate Token from Redis cache
+        Object cachedEmailObj = redisTemplate.opsForValue().get(redisKey);
+        if (cachedEmailObj == null) {
+            throw new IllegalArgumentException("The reset link has expired or is invalid.");
+        }
+
+        String email = cachedEmailObj.toString();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Account processing error during recovery sync."));
+
+        // 2. Set new password and invalidate prior sessions
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        userRepository.save(user);
+
+        // 3. Burn the reset token instantly so it cannot be used again
+        redisTemplate.delete(redisKey);
+
+        log.info("Password successfully recovered and reset for user: {}", user.getUsername());
+    }
+
 
     /// For Testing Purpose
     @Override
