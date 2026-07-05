@@ -92,7 +92,7 @@ public class UserController {
         User user = (User) authentication.getPrincipal();
         userService.changePassword(user, request);
 
-        return ResponseEntity.ok("Password updated successfully. Please log in again on other devices.");
+        return ResponseEntity.ok("Password updated successfully.");
     }
 
     // REQUEST OTP
@@ -107,13 +107,18 @@ public class UserController {
 
     // VERIFY OTP & GET SECURE TOKEN
     @PostMapping("/verify-otp")
-    public ResponseEntity<Map<String, String>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+    public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         String secureToken = userService.verifyOtp(request.getOtp());
 
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "OTP Verified Successfully.");
-        response.put("secureResetToken", secureToken);
-        return ResponseEntity.ok(response);
+        if (secureToken == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Invalid or expired OTP."));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message", "OTP Verified.",
+                "secureResetToken", secureToken
+        ));
     }
 
     // SUBMIT NEW PASSWORD

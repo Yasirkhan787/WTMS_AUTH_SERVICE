@@ -293,16 +293,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void changePassword(User user, ChangePasswordRequest request) {
-        // 1. Verify old password matches current encoded password
+        // Verify old password matches current encoded password
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             throw new BadCredentialsException("The current password you provided is incorrect.");
         }
 
-        // 2. Validate password strength/rules if required, then encode new password
+        // Validate password strength/rules if required, then encode new password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-
-        // 3. CRITICAL SECURITY FEATURE: Increment Token Version to instantly invalidate all old active JWT sessions!
-        user.setTokenVersion(user.getTokenVersion() + 1);
 
         userRepository.save(user);
         log.info("Password changed successfully for user: {}. Active tokens revoked.", user.getUsername());
@@ -337,26 +334,18 @@ public class UserServiceImpl implements UserService {
     @Override
     public String verifyOtp(String otp) {
         String redisOtpKey = "wtms:auth:otp:" + otp;
-
-        // Validate OTP from Redis
         Object cachedEmailObj = redisTemplate.opsForValue().get(redisOtpKey);
+
         if (cachedEmailObj == null) {
-            throw new IllegalArgumentException("This 6-digit OTP has expired or is invalid.");
+            return null;
         }
 
         String email = cachedEmailObj.toString();
-
-        // Burn the OTP instantly so it cannot be guessed/reused
         redisTemplate.delete(redisOtpKey);
 
-        // Generate the Temporary Secure Reset Token (UUID) for Step 3
         String secureResetToken = UUID.randomUUID().toString();
         String redisResetKey = "wtms:auth:reset-token:" + secureResetToken;
-
-        // Cache this secure token for 15 minutes to allow them to type their new password
         redisTemplate.opsForValue().set(redisResetKey, email, 15, TimeUnit.MINUTES);
-
-        log.info("OTP verified for {}. Secure reset session initiated.", email);
 
         return secureResetToken;
     }
