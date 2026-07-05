@@ -16,17 +16,14 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // 1. Create a new ObjectMapper instance
         ObjectMapper objectMapper = new ObjectMapper();
-
-        // 2. Pass the ObjectMapper into the serializer
         GenericJacksonJsonRedisSerializer jsonSerializer = new GenericJacksonJsonRedisSerializer(objectMapper);
 
-        // Standard key/value serializers
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(jsonSerializer);
 
-        // Hash key and value serializers for your Map<Object, Object> payloads
+        // Hash key/value serializers, used for the Map<String, Object> cache payloads
+        // (e.g. "wtms:auth:user:{id}" status hashes) written from UserServiceImpl.
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(jsonSerializer);
 

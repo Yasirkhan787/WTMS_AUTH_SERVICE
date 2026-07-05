@@ -15,76 +15,60 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
+    // CHANGED: removed the "" default. A blank secret would otherwise let a request through
+    // with an empty X-Gateway-Secret header if the property was ever misconfigured/missing.
+    // Now Spring fails fast at startup if app.security.internal-secret isn't set.
     @Value("${app.security.internal-secret}")
-    private String GATEWAY_SECRET = "";
+    private String gatewaySecret;
+
     private final JwtService jwtService;
     private final HandlerExceptionResolver exceptionResolver;
 
-    // Inject the HandlerExceptionResolver
     public JwtAuthFilter(JwtService jwtService,
                          @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
         this.jwtService = jwtService;
         this.exceptionResolver = exceptionResolver;
     }
 
-    //
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/auth/login") ||
-                path.startsWith("/auth/refresh") ||
-                path.startsWith("/auth/user/add-user") ||
-                path.startsWith("/auth/user/forget-password") ||
-                path.startsWith("/auth/user/verify-otp") ||
-                path.startsWith("/auth/user/reset-password") ||
-                path.startsWith("/v3/api-docs") ||
-                path.startsWith("/swagger-ui/");
-
+        // CHANGED: now reuses SecurityConfig.PUBLIC_ENDPOINTS instead of a second,
+        // independently-maintained list of the same paths.
+        return Arrays.stream(SecurityConfig.PUBLIC_ENDPOINTS)
+                .map(pattern -> pattern.replace("/**", ""))
+                .anyMatch(path::startsWith);
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException, IOException {
-        String authHeader = request.getHeader("Authorization");
-        String token = "";
-        String username = "";
-
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         try {
+            validateGatewaySecret(request);
 
-            String incomingSecret = request.getHeader("X-Gateway-Secret");
-
-            if (incomingSecret == null || !incomingSecret.equals(GATEWAY_SECRET)) {
-                throw new UnauthorizedException("Direct access blocked: Request must come through API Gateway");
-            }
-
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                throw new TokenNotFoundException("Missing Access Token");
-            }
-
-            token = authHeader.substring(7);
-            username = jwtService.extractUsername(token);
+            String token = extractBearerToken(request);
+            String username = jwtService.extractUsername(token);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
                 UserDetails userDetails = jwtService.loadUserByUsername(username);
 
                 if (jwtService.isTokenValid(token, userDetails)) {
-
                     if (!userDetails.isAccountNonLocked()) {
                         throw new BadCredentialsException("User is blocked by admin");
                     }
 
-                    // Set Spring SecurityContextHolder
-                    UsernamePasswordAuthenticationToken authToken
-                            = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
@@ -93,5 +77,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             exceptionResolver.resolveException(request, response, null, e);
         }
+    }
+
+    // CHANGED: extracted from doFilterInternal for readability/single-responsibility.
+    private void validateGatewaySecret(HttpServletRequest request) {
+        String incomingSecret = request.getHeader("X-Gateway-Secret");
+        if (!StringUtils.hasText(incomingSecret) || !incomingSecret.equals(gatewaySecret)) {
+            throw new UnauthorizedException("Direct access blocked: Request must come through API Gateway");
+        }
+    }
+
+    // CHANGED: extracted from doFilterInternal for readability/single-responsibility.
+    private String extractBearerToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new TokenNotFoundException("Missing Access Token");
+        }
+        return authHeader.substring(7);
     }
 }

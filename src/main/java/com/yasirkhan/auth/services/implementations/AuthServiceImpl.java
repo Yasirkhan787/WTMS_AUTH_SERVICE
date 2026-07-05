@@ -14,22 +14,20 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
-
     private final AuthenticationManager authenticationManager;
-
     private final JwtService jwtService;
-
     private final RefreshTokenService refreshTokenService;
 
-    public AuthServiceImpl(UserRepository userRepository, AuthenticationManager authenticationManager, JwtService jwtService, RefreshTokenService refreshTokenService) {
+    public AuthServiceImpl(UserRepository userRepository, AuthenticationManager authenticationManager,
+                           JwtService jwtService, RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
@@ -37,54 +35,45 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    // CHANGED: added @Transactional so the tokenVersion increment (userRepository.save) and
+    // refresh-token persistence happen atomically - if refresh token generation fails, the
+    // tokenVersion bump is rolled back instead of silently invalidating the user's other sessions.
+    @Transactional
     public AuthResponse login(AuthRequest authRequest) {
-        Authentication authentication = null;
+        Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            authRequest.getUsername(),
-                            authRequest.getPassword()
-                    )
+                    new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
             );
         } catch (AuthenticationException e) {
-
             throw new BadCredentialsException(e.getMessage());
         }
 
-        if (authentication.isAuthenticated()) {
-
-            User user = (User) authentication.getPrincipal();
-
-            if (!user.isAccountNonLocked()) {
-                throw new BadCredentialsException("User is blocked by admin");
-            }
-
-            user.setTokenVersion(user.getTokenVersion() + 1);
-            userRepository.save(user);
-
-            String role = user.getRole().name();
-
-            String userId = user.getId().toString();
-
-            Integer tokenVersion =  user.getTokenVersion();
-
-            Map<String, Object> headers = new HashMap<>();
-            headers.put("role", role);
-            headers.put("userId", userId);
-            headers.put("tokenVersion", tokenVersion);
-
-            String accessToken
-                    = jwtService.generateJwtToken(user.getUsername(), headers);
-
-            String refreshToken
-                    = refreshTokenService.generateRefreshToken(user);
-
-            return AuthResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .build();
-        } else {
+        if (!authentication.isAuthenticated()) {
             throw new UserNotFoundException("User Not Found Authentication failed!");
         }
+
+        User user = (User) authentication.getPrincipal();
+
+        if (!user.isAccountNonLocked()) {
+            throw new BadCredentialsException("User is blocked by admin");
+        }
+
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        userRepository.save(user);
+
+        Map<String, Object> headers = Map.of(
+                "role", user.getRole().name(),
+                "userId", user.getId().toString(),
+                "tokenVersion", user.getTokenVersion()
+        );
+
+        String accessToken = jwtService.generateJwtToken(user.getUsername(), headers);
+        String refreshToken = refreshTokenService.generateRefreshToken(user);
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 }

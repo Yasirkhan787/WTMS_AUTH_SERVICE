@@ -28,7 +28,9 @@ import java.util.function.Function;
 @Service
 public class JwtServiceImpl implements JwtService {
 
-    private final Long EXPIRATION_TIME = 1000 * 60 * 60L;  // 1 hour
+    private static final long EXPIRATION_TIME_MS = TimeUnit.HOURS.toMillis(1);
+
+    private static final String REDIS_TOKEN_KEY_PREFIX = "user:token:";
 
     @Value("${jwt.private-key.path}")
     private Resource privateKeyResource;
@@ -49,28 +51,28 @@ public class JwtServiceImpl implements JwtService {
 
     @PostConstruct
     public void init() throws Exception {
-        // Load Private Key for SIGNING tokens
-        byte[] privKeyBytes = privateKeyResource.getInputStream().readAllBytes();
-        String privKeyString = new String(privKeyBytes)
+        this.privateKey = loadPrivateKey(privateKeyResource);
+        this.publicKey = loadPublicKey(publicKeyResource);
+    }
+
+    private PrivateKey loadPrivateKey(Resource resource) throws Exception {
+        String pem = new String(resource.getInputStream().readAllBytes())
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
                 .replaceAll("\\s+", "");
 
-        byte[] decodedPrivKey = Base64.getDecoder().decode(privKeyString);
-        PKCS8EncodedKeySpec privKeySpec = new PKCS8EncodedKeySpec(decodedPrivKey);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        this.privateKey = keyFactory.generatePrivate(privKeySpec);
+        byte[] decoded = Base64.getDecoder().decode(pem);
+        return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(decoded));
+    }
 
-        // Load Public Key for VERIFYING tokens locally
-        byte[] pubKeyBytes = publicKeyResource.getInputStream().readAllBytes();
-        String pubKeyString = new String(pubKeyBytes)
+    private PublicKey loadPublicKey(Resource resource) throws Exception {
+        String pem = new String(resource.getInputStream().readAllBytes())
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
                 .replaceAll("\\s+", "");
 
-        byte[] decodedPubKey = Base64.getDecoder().decode(pubKeyString);
-        X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(decodedPubKey);
-        this.publicKey = keyFactory.generatePublic(pubKeySpec);
+        byte[] decoded = Base64.getDecoder().decode(pem);
+        return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(decoded));
     }
 
     @Override
@@ -84,14 +86,14 @@ public class JwtServiceImpl implements JwtService {
                 .claim("userId", userId)
                 .claim("tokenVersion", headers.get("tokenVersion"))
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME_MS))
                 .signWith(privateKey)
                 .compact();
 
         redisTemplate.opsForValue().set(
-                "user:token:" + userId,
+                REDIS_TOKEN_KEY_PREFIX + userId,
                 tokenVersion,
-                EXPIRATION_TIME,
+                EXPIRATION_TIME_MS,
                 TimeUnit.MILLISECONDS
         );
 
@@ -115,7 +117,7 @@ public class JwtServiceImpl implements JwtService {
             throw new TokenExpiredException("Token has expired");
         }
 
-        Integer tokenVersion = extractClaim(token, (claims) -> claims.get("tokenVersion", Integer.class));
+        Integer tokenVersion = extractClaim(token, claims -> claims.get("tokenVersion", Integer.class));
         User user = (User) userDetails;
 
         if (!tokenVersion.equals(user.getTokenVersion())) {

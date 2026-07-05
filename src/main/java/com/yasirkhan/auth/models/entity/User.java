@@ -31,7 +31,7 @@ public class User implements UserDetails {
 
     private String password;
 
-    @Enumerated(EnumType.STRING) // Saves enum name (e.g. "ADMIN") instead of number
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
@@ -40,7 +40,12 @@ public class User implements UserDetails {
 
     private Integer tokenVersion = 0;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    // CHANGED: added fetch = LAZY + orphanRemoval = true.
+    // @OneToOne defaults to EAGER, which combined with the mappedBy (inverse) side causes
+    // Hibernate to issue an extra SELECT per User row when this association isn't join-fetched
+    // (the N+1 problem). Repository methods that need it now use "LEFT JOIN FETCH" explicitly
+    // (see UserRepository), so lazy loading here avoids the redundant per-row query everywhere else.
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private RefreshToken refreshToken;
 
     @Override
@@ -63,6 +68,8 @@ public class User implements UserDetails {
         return true;
     }
 
+    // isBlocked == true means an admin manually suspended the account or it was locked
+    // after repeated failed login attempts.
     @Override
     public boolean isAccountNonLocked() {
         return !isBlocked;
@@ -77,11 +84,4 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
-/*
-    Locked: Usually means "Too many failed login attempts" or "Admin manually suspended this user."
-
-    Disabled: Usually means "Email not verified" or "Account deactivated by user."
-
- */
 }

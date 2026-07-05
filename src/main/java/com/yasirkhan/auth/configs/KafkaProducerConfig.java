@@ -17,28 +17,47 @@ import java.util.Map;
 @Configuration
 public class KafkaProducerConfig {
 
-    private final String BOOTSTRAP_SERVER;
+    // CHANGED: extracted topic names into constants instead of magic strings scattered
+    // across the @Bean methods, and renamed the injected field to camelCase.
+    private static final String USER_STATUS_TOPIC = "user-status-topic";
+    private static final String USER_CREATED_TOPIC = "user-created-topic";
+    private static final String USER_UPDATED_TOPIC = "user-updated-topic";
+    private static final String USER_RESPONSE_DLT = "user-response-topic-dlt";
+    private static final int PARTITIONS = 2;
+    private static final short REPLICATION_FACTOR = 1;
+
+    private final String bootstrapServer;
 
     public KafkaProducerConfig(@Value("${kafka.bootstrap.server}") String bootstrapServer) {
-        BOOTSTRAP_SERVER = bootstrapServer;
+        this.bootstrapServer = bootstrapServer;
     }
 
     @Bean
-    public NewTopic createUserStatusTopic() { return new NewTopic("user-status-topic", 2, (short) 1); }
+    public NewTopic createUserStatusTopic() {
+        return new NewTopic(USER_STATUS_TOPIC, PARTITIONS, REPLICATION_FACTOR);
+    }
+
     @Bean
-    public NewTopic createUserCreatedTopic() { return new NewTopic("user-created-topic", 2, (short) 1); }
+    public NewTopic createUserCreatedTopic() {
+        return new NewTopic(USER_CREATED_TOPIC, PARTITIONS, REPLICATION_FACTOR);
+    }
+
     @Bean
-    public NewTopic createUserUpdatedTopic() { return new NewTopic("user-updated-topic", 2, (short) 1); }
+    public NewTopic createUserUpdatedTopic() {
+        return new NewTopic(USER_UPDATED_TOPIC, PARTITIONS, REPLICATION_FACTOR);
+    }
+
     @Bean
-    public NewTopic userResponseDLT() { return new NewTopic("user-response-topic-dlt", 2, (short) 1); }
+    public NewTopic userResponseDLT() {
+        return new NewTopic(USER_RESPONSE_DLT, PARTITIONS, REPLICATION_FACTOR);
+    }
 
     @Bean
     public Map<String, Object> producerConfig() {
         Map<String, Object> properties = new HashMap<>();
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVER);
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
-
         return properties;
     }
 

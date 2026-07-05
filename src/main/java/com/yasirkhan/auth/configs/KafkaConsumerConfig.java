@@ -20,23 +20,22 @@ import java.util.Map;
 @Configuration
 public class KafkaConsumerConfig {
 
-    private final String BOOTSTRAP_SERVER;
-    private final String CONSUMER_GROUP;
+    private final String bootstrapServer;
+    private final String consumerGroup;
 
     public KafkaConsumerConfig(@Value("${kafka.bootstrap.server}") String bootstrapServer,
                                @Value("${kafka.consumer.group}") String consumerGroup) {
-        BOOTSTRAP_SERVER = bootstrapServer;
-        CONSUMER_GROUP = consumerGroup;
+        this.bootstrapServer = bootstrapServer;
+        this.consumerGroup = consumerGroup;
     }
 
     @Bean
     public Map<String, Object> consumerConfig() {
         Map<String, Object> properties = new HashMap<>();
-        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVER);
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, CONSUMER_GROUP);
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroup);
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
         return properties;
     }
 
@@ -54,17 +53,14 @@ public class KafkaConsumerConfig {
 
         factory.setConsumerFactory(consumerFactory());
         factory.setCommonErrorHandler(errorHandler);
-
-        // Tell Spring to map the JSON automatically!
         factory.setRecordMessageConverter(new StringJacksonJsonMessageConverter());
 
         return factory;
     }
 
+    // Retries a failed record 3 times (2s apart) before publishing it to the dead-letter topic.
     @Bean
     public DefaultErrorHandler errorHandler(KafkaOperations<String, Object> template) {
-
-
         return new DefaultErrorHandler(
                 new DeadLetterPublishingRecoverer(template),
                 new FixedBackOff(2000L, 3)

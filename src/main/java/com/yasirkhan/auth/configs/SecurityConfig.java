@@ -23,6 +23,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    // CHANGED: extracted public endpoint list into a constant array, reused by both
+    // the filter chain below and JwtAuthFilter.shouldNotFilter, so the two lists can't drift apart.
+    // Package-private (no modifier) so JwtAuthFilter, in the same package, can reference it.
+    static final String[] PUBLIC_ENDPOINTS = {
+            "/auth/login",
+            "/auth/refresh",
+            "/auth/user/add-user",
+            "/auth/user/forget-password",
+            "/auth/user/verify-otp",
+            "/auth/user/reset-password",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
+    };
+
     private final UserDetailsServiceImpl userDetailsService;
 
     public SecurityConfig(UserDetailsServiceImpl userDetailsService) {
@@ -30,21 +45,19 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(){
+    public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        // provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        // Note: Make sure to add 'throws Exception' here as getAuthenticationManager() requires it
         return config.getAuthenticationManager();
     }
 
@@ -53,26 +66,11 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(CorsConfigurer::disable)
-
-                .authorizeHttpRequests(auth ->
-                        auth
-                                .requestMatchers(
-                                        "/auth/login",
-                                        "/auth/refresh",
-                                        "/auth/user/add-user",
-                                        "/auth/user/forget-password",
-                                        "/auth/user/verify-otp",
-                                        "/auth/user/reset-password",
-                                        "/v3/api-docs/**",
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html"
-                                )
-                                .permitAll()
-                                .anyRequest()
-                                .authenticated())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
     }
 }

@@ -4,11 +4,11 @@ import com.yasirkhan.auth.models.dtos.UserResponseEvent;
 import com.yasirkhan.auth.models.enums.EventStatus;
 import com.yasirkhan.auth.models.enums.EventType;
 import com.yasirkhan.auth.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -35,6 +35,8 @@ public class UserEventConsumer {
         EventType eventType = event.getType();
         EventStatus status = event.getEventTypeStatus();
 
+        log.info("Received user-response event. userId={}, type={}, status={}", userId, eventType, status);
+
         if (EventStatus.SUCCESS.equals(status)) {
             handleSuccessScenarios(userId, eventType);
         } else if (EventStatus.FAILURE.equals(status)) {
@@ -46,51 +48,42 @@ public class UserEventConsumer {
 
     private void handleSuccessScenarios(UUID userId, EventType eventType) {
         switch (eventType) {
-            case CREATE:
-                // SAGA SUCCESS: Activate the pending user
-                userRepository.findById(userId).ifPresentOrElse(user -> {
-                    user.setIsBlocked(false);
-                    userRepository.save(user);
+            case CREATE -> // SAGA SUCCESS: activate the pending user
+                    userRepository.findById(userId).ifPresentOrElse(user -> {
+                        user.setIsBlocked(false);
+                        userRepository.save(user);
 
-                    String redisKey = "wtms:auth:user:" + userId;
-                    redisTemplate.opsForHash().put(redisKey, "status", "ACTIVE");
-                    log.info("Saga Completed: User {} successfully activated.", userId);
-                }, () -> log.error("Saga Success Error: User not found in Auth DB for ID: {}", userId));
-                break;
+                        String redisKey = "wtms:auth:user:" + userId;
+                        redisTemplate.opsForHash().put(redisKey, "status", "ACTIVE");
+                        log.info("Saga Completed: User {} successfully activated.", userId);
+                    }, () -> log.error("Saga Success Error: User not found in Auth DB for ID: {}", userId));
 
-            case UPDATE:
-                log.info("Saga Completed: User {} successfully updated in downstream services.", userId);
-                // (Add any specific Auth DB updates here if needed, otherwise just log success)
-                break;
+            case UPDATE ->
+                    log.info("Saga Completed: User {} successfully updated in downstream services.", userId);
 
-            case BLOCK:
-            case DELETE:
-                log.info("Saga Completed: User {} status change synced successfully.", userId);
-                break;
+            case BLOCK, DELETE ->
+                    log.info("Saga Completed: User {} status change synced successfully.", userId);
 
-            default:
-                log.warn("Unhandled SUCCESS event type: {}", eventType);
+            default -> log.warn("Unhandled SUCCESS event type: {}", eventType);
         }
     }
 
     private void handleFailureScenarios(UUID userId, EventType eventType) {
         switch (eventType) {
-            case CREATE:
+            case CREATE -> {
                 if (userRepository.existsById(userId)) {
                     userRepository.deleteById(userId);
                     log.info("Saga Rollback Success: Deleted profile and associated actor for ID: {}", userId);
                 } else {
                     log.warn("Saga Rollback Warning: User already deleted or not found for ID: {}", userId);
                 }
-                break;
+            }
+            // TODO: implement logic to revert the Auth DB to its previous state on UPDATE failure
+            case UPDATE -> log.error(
+                    "Saga Rollback Required: Update failed in User Service for ID: {}. Revert local Auth DB state if necessary.",
+                    userId);
 
-            case UPDATE:
-                log.error("Saga Rollback Required: Update failed in User Service for ID: {}. Revert local Auth DB state if necessary.", userId);
-                // Implement logic to revert the Auth database to its previous state
-                break;
-
-            default:
-                log.error("Unhandled FAILURE event type: {} for User ID: {}", eventType, userId);
+            default -> log.error("Unhandled FAILURE event type: {} for User ID: {}", eventType, userId);
         }
     }
 }

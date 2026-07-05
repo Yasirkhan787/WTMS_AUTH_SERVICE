@@ -17,27 +17,33 @@ import com.yasirkhan.auth.responses.UserResponse;
 import com.yasirkhan.auth.services.RefreshTokenService;
 import com.yasirkhan.auth.services.UserService;
 import com.yasirkhan.auth.utils.ResponseConversions;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.yasirkhan.auth.requests.ChangePasswordRequest;
 import com.yasirkhan.auth.requests.ForgetPasswordRequest;
 import com.yasirkhan.auth.requests.ResetPasswordRequest;
-import java.util.concurrent.TimeUnit;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
+
+    // CHANGED: Math.random() is not cryptographically secure; OTPs used for password
+    // reset should be generated with SecureRandom.
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final UserRepository userRepository;
     private final UserEventProducer userEventProducer;
@@ -49,7 +55,8 @@ public class UserServiceImpl implements UserService {
 
     public UserServiceImpl(UserRepository userRepository, UserEventProducer userEventProducer,
                            PasswordEncoder passwordEncoder, RefreshTokenService refreshTokenService,
-                           RedisTemplate<String, Object> redisTemplate, NotificationClient notificationClient, EmailService emailService) {
+                           RedisTemplate<String, Object> redisTemplate, NotificationClient notificationClient,
+                           EmailService emailService) {
         this.userRepository = userRepository;
         this.userEventProducer = userEventProducer;
         this.passwordEncoder = passwordEncoder;
@@ -105,11 +112,11 @@ public class UserServiceImpl implements UserService {
                 .status("PENDING")
                 .build();
 
-        if (request.getTehsilId() != null ){
+        if (request.getTehsilId() != null) {
             event.setTehsilId(UUID.fromString(request.getTehsilId()));
         }
 
-        if (request.getYardId() != null ){
+        if (request.getYardId() != null) {
             event.setYardId(UUID.fromString(request.getYardId()));
         }
 
@@ -118,37 +125,27 @@ public class UserServiceImpl implements UserService {
         return ResponseConversions.toUserResponse(savedUser);
     }
 
-    // Update User
     @Override
     @Transactional
     public void updateUser(Map<String, Object> updateRequest) {
 
         UUID userId = UUID.fromString(updateRequest.get("userId").toString());
 
-        User dbUser =
-                userRepository
-                        .findById(userId)
-                        .orElseThrow(
-                                () -> new ResourceNotFoundException(
-                                        "User Not Found with User ID: " + userId));
+        User dbUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User Not Found with User ID: " + userId));
 
-        /* TODO: Use MapConstruct */
-        UserEventDto eventDto =
-                UserEventDto
-                        .builder()
-                        .userId(userId)
-                        .role(dbUser.getRole())
-                        .build();
+        UserEventDto eventDto = UserEventDto.builder()
+                .userId(userId)
+                .role(dbUser.getRole())
+                .build();
 
-        updateRequest.forEach((key, value) ->
-        {
+        updateRequest.forEach((key, value) -> {
             switch (key) {
-                case "username" -> {
-                    dbUser.setUsername((String) value);
-                }
+                case "username" -> dbUser.setUsername((String) value);
                 case "role" -> {
-                    dbUser.setRole(Role.valueOf(value.toString()));
-                    eventDto.setRole(Role.valueOf(value.toString()));
+                    Role role = Role.valueOf(value.toString());
+                    dbUser.setRole(role);
+                    eventDto.setRole(role);
                 }
                 case "email" -> {
                     dbUser.setEmail((String) value);
@@ -160,31 +157,19 @@ public class UserServiceImpl implements UserService {
                 case "gender" -> eventDto.setGender((String) value);
                 case "phoneNo" -> eventDto.setPhoneNo((String) value);
                 case "address" -> eventDto.setAddress((String) value);
-                case "dob" -> {
-                    DateTimeFormatter formatter =
-                            DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                    eventDto.setDob(LocalDate.parse((String) value, formatter));
-                }
+                case "dob" -> eventDto.setDob(LocalDate.parse((String) value, DATE_FORMATTER));
                 case "tehsilId" -> eventDto.setTehsilId((UUID) value);
                 case "yardId" -> eventDto.setYardId((UUID) value);
                 case "licenseNo" -> eventDto.setLicenseNo((String) value);
-                case "licenseExpiry" -> {
-                    DateTimeFormatter formatter =
-                            DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                    eventDto.setLicenseExpiry(LocalDate.parse((String) value, formatter));
-                }
+                case "licenseExpiry" -> eventDto.setLicenseExpiry(LocalDate.parse((String) value, DATE_FORMATTER));
                 case "status" -> eventDto.setStatus((String) value);
             }
         });
 
         try {
-
             userRepository.save(dbUser);
 
-            if (eventDto.getEmail() != null || eventDto.getName() != null || eventDto.getFatherName() != null || eventDto.getCnic() != null
-                    || eventDto.getPhoneNo() != null || eventDto.getAddress() != null || eventDto.getGender() != null
-                    || eventDto.getDob() != null || eventDto.getTehsilId() != null || eventDto.getYardId() != null || eventDto.getLicenseNo() != null || eventDto.getLicenseExpiry() != null) {
-
+            if (hasProfileChanges(eventDto)) {
                 userEventProducer.userUpdateEvent(eventDto);
             }
         } catch (Exception e) {
@@ -192,14 +177,22 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    // CHANGED: extracted the long chain of null-checks into its own method for readability.
+    private boolean hasProfileChanges(UserEventDto eventDto) {
+        return eventDto.getEmail() != null || eventDto.getName() != null || eventDto.getFatherName() != null
+                || eventDto.getCnic() != null || eventDto.getPhoneNo() != null || eventDto.getAddress() != null
+                || eventDto.getGender() != null || eventDto.getDob() != null || eventDto.getTehsilId() != null
+                || eventDto.getYardId() != null || eventDto.getLicenseNo() != null || eventDto.getLicenseExpiry() != null;
+    }
+
     @Override
     @Transactional
     public void blockUser(String id, Boolean blockStatus) {
 
-        UUID userID = UUID.fromString(id);
+        UUID userId = UUID.fromString(id);
 
-        User dbUser = userRepository.findById(userID).orElseThrow(
-                () -> new UserNotFoundException("User with ID: " + userID + " Not Found"));
+        User dbUser = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User with ID: " + userId + " Not Found"));
 
         dbUser.setIsBlocked(blockStatus);
 
@@ -211,11 +204,11 @@ public class UserServiceImpl implements UserService {
 
         String status = savedUser.getIsBlocked() ? "BLOCKED" : "ACTIVE";
 
-        String redisKey = "wtms:auth:user:" + userID;
+        String redisKey = "wtms:auth:user:" + userId;
         redisTemplate.opsForHash().put(redisKey, "status", status);
 
         UserEventDto userData = UserEventDto.builder()
-                .userId(userID)
+                .userId(userId)
                 .role(savedUser.getRole())
                 .status(status)
                 .build();
@@ -230,10 +223,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    // CHANGED: readOnly = true - this is a pure read path, so Hibernate can skip
+    // dirty-checking/flush overhead for every entity in the list.
+    @Transactional(readOnly = true)
     public List<UserResponse> getAllUser() {
 
-        List<User> users =
-                userRepository.findAll();
+        List<User> users = userRepository.findAll();
 
         if (users.isEmpty()) {
             throw new UserNotFoundException("No User Found in Database");
@@ -245,46 +240,36 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getUserById(String id) {
 
-        UUID userID = UUID.fromString(id);
-        User user =
-                userRepository.findById(userID).orElseThrow(
-                        () -> new UserNotFoundException("User with ID: " + id + " Not Found"));
+        UUID userId = UUID.fromString(id);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User with ID: " + id + " Not Found"));
 
         return ResponseConversions.toUserResponse(user);
     }
 
-
     @Override
+    @Transactional(readOnly = true)
     public User getUserByUsername(String username) {
-
-        return
-                userRepository
-                        .findByUsername(username)
-                        .orElseThrow(
-                                () -> new UserNotFoundException
-                                        ("User with Username: " + username + " Not Found."));
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User with Username: " + username + " Not Found."));
     }
 
     @Override
     @Transactional
     public boolean logoutUser(User user) {
 
-        Integer tokenVersion = user.getTokenVersion();
-        user.setTokenVersion(tokenVersion + 1);
+        user.setTokenVersion(user.getTokenVersion() + 1);
 
         RefreshToken refreshToken = user.getRefreshToken();
-
         if (refreshToken != null) {
-
             user.setRefreshToken(null);
-
             refreshTokenService.deleteRefreshToken(refreshToken.getToken());
         }
 
         userRepository.save(user);
-
         notificationClient.deleteFCMToken(user.getId().toString());
 
         return true;
@@ -293,14 +278,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void changePassword(User user, ChangePasswordRequest request) {
-        // Verify old password matches current encoded password
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             throw new BadCredentialsException("The current password you provided is incorrect.");
         }
 
-        // Validate password strength/rules if required, then encode new password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-
         userRepository.save(user);
         log.info("Password changed successfully for user: {}. Active tokens revoked.", user.getUsername());
     }
@@ -314,21 +296,23 @@ public class UserServiceImpl implements UserService {
             throw new UnauthorizedException("This account has been locked out by an administrator.");
         }
 
-        // Generate 6-Digit OTP
-        int randomNum = (int) (Math.random() * 900000) + 100000;
-        String otp = String.valueOf(randomNum);
+        String otp = generateOtp();
 
-        // Store OTP in Redis for exactly 10 minutes
         String redisOtpKey = "wtms:auth:otp:" + otp;
         redisTemplate.opsForValue().set(redisOtpKey, user.getEmail(), 10, TimeUnit.MINUTES);
 
-        // Dispatch the live email containing the OTP
         emailService.sendPasswordResetEmail(user.getEmail(), otp);
-
         log.info("Forget password 6-digit OTP generated and emailed to user: {}", user.getUsername());
 
-        // Return a generic success message to the controller, NOT the OTP itself!
+        // Generic message returned to the controller - never leak the OTP itself in the response.
         return "OTP sent successfully.";
+    }
+
+    // CHANGED: extracted OTP generation into its own method, now backed by SecureRandom
+    // instead of Math.random() (see SECURE_RANDOM field comment above).
+    private String generateOtp() {
+        int otp = SECURE_RANDOM.nextInt(900000) + 100000;
+        return String.valueOf(otp);
     }
 
     @Override
@@ -353,10 +337,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
-        // The frontend now passes the UUID from verifyOtp() into request.getToken()
+        // The reset token here is the UUID issued by verifyOtp(), not the original OTP.
         String redisResetKey = "wtms:auth:reset-token:" + request.getToken();
 
-        // Validate Secure Token
         Object cachedEmailObj = redisTemplate.opsForValue().get(redisResetKey);
         if (cachedEmailObj == null) {
             throw new IllegalArgumentException("This secure reset session has expired. Please request a new OTP.");
@@ -366,27 +349,22 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Account processing error during recovery sync."));
 
-        // Set new password and invalidate prior sessions
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
 
-        // Burn the secure reset token
         redisTemplate.delete(redisResetKey);
-
         log.info("Password successfully recovered and reset for user: {}", user.getUsername());
     }
 
-    /// For Testing Purpose
+    // For internal/testing use - creates a user with an explicitly provided blocked status.
     @Override
     public UserResponse addUser(SuperAdminReq request) {
 
-        // Check if username is already exist
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new UserAlreadyExistException("User with Username: " + request.getUsername() + " is already exist");
         }
 
-        // Check if email is already exist
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistException("User with Email: " + request.getEmail() + " is already exist");
         }

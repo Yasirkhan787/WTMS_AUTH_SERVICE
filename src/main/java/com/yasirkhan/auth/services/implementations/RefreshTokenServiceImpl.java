@@ -11,11 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
-    private final Long REFRESH_EXPIRATION = 1000 * 60 * 60 * 24 * 7L; // 7 days
+    private static final long REFRESH_EXPIRATION_MS = TimeUnit.DAYS.toMillis(7);
+
     private final RefreshTokenRepository refreshTokenRepository;
 
     public RefreshTokenServiceImpl(RefreshTokenRepository refreshTokenRepository) {
@@ -27,14 +29,16 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public String generateRefreshToken(User user) {
 
         RefreshToken refreshToken = user.getRefreshToken();
+        String newToken = UUID.randomUUID().toString();
+        Date newExpiry = new Date(System.currentTimeMillis() + REFRESH_EXPIRATION_MS);
 
         if (refreshToken != null) {
-            refreshToken.setToken(UUID.randomUUID().toString());
-            refreshToken.setExpirationDate(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION));
+            refreshToken.setToken(newToken);
+            refreshToken.setExpirationDate(newExpiry);
         } else {
             refreshToken = RefreshToken.builder()
-                    .token(UUID.randomUUID().toString())
-                    .expirationDate(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION))
+                    .token(newToken)
+                    .expirationDate(newExpiry)
                     .user(user)
                     .build();
 
@@ -55,11 +59,9 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public RefreshToken validateRefreshToken(RefreshToken token) {
-        if(token.getExpirationDate().before(new Date())) {
+        if (token.getExpirationDate().before(new Date())) {
             refreshTokenRepository.delete(token);
-            throw new TokenExpiredException(
-                    "Refresh token is expired. Please make a new login..!"
-            );
+            throw new TokenExpiredException("Refresh token is expired. Please make a new login..!");
         }
         return token;
     }
